@@ -14,7 +14,6 @@ export async function matchSessionToPlan(sessionId: string) {
   const dayOfWeek = sessionStart.getDay();
   const dateStr = sessionStart.toISOString().slice(0, 10);
 
-  // Find candidate plans
   const plans = await prisma.plan.findMany({
     where: {
       userId: session.userId,
@@ -23,7 +22,7 @@ export async function matchSessionToPlan(sessionId: string) {
     },
   });
 
-  let bestPlan: typeof plans[0] | null = null;
+  let bestPlan: (typeof plans)[0] | null = null;
   let bestScore = 0;
 
   for (const plan of plans) {
@@ -34,7 +33,6 @@ export async function matchSessionToPlan(sessionId: string) {
     const planEnd = new Date(sessionStart);
     planEnd.setHours(eh, em, 0, 0);
 
-    // Check time overlap
     const overlapStart = new Date(Math.max(sessionStart.getTime(), planStart.getTime()));
     const overlapEnd = new Date(Math.min(sessionEnd.getTime(), planEnd.getTime()));
     const overlapMin = (overlapEnd.getTime() - overlapStart.getTime()) / 60000;
@@ -42,7 +40,6 @@ export async function matchSessionToPlan(sessionId: string) {
 
     let score = overlapMin;
 
-    // Bonus for app name match
     if (plan.appName && session.appName) {
       if (plan.appName === session.appName) {
         score += 1000;
@@ -50,7 +47,6 @@ export async function matchSessionToPlan(sessionId: string) {
         score += 500;
       }
     } else if (!plan.appName) {
-      // Plan without app restriction — time-only match, lower priority
       score += 200;
     }
 
@@ -72,92 +68,243 @@ export async function matchSessionToPlan(sessionId: string) {
 }
 
 /**
- * Check all enabled alert configs and trigger alerts if behind schedule.
+ * Get today's actual minutes for a plan.
+ */
+async function getTodayActualMin(planId: string, userId: string) {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const dayStart = new Date(dateStr);
+  const dayEnd = new Date(dateStr);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
+  const sessions = await prisma.trackingSession.findMany({
+    where: { userId, planId, startTime: { gte: dayStart, lt: dayEnd } },
+  });
+  return sessions.reduce((s, sess) => s + (sess.durationSec || 0), 0) / 60;
+}
+
+/**
+ * Main alert check — runs every minute.
+ * Instead of exact checkTime matching, it evaluates ALL active plans
+ * that are within or near their scheduled window.
  */
 export async function runAlertCheck() {
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const dateStr = now.toISOString().slice(0, 10);
+  const dayOfWeek = now.getDay();
 
-  const configs = await prisma.alertConfig.findMany({
-    where: { enabled: true, checkTime: timeStr },
-    include: { plan: true, user: true },
+  // Get all active plans scheduled for today
+  const plans = await prisma.plan.findMany({
+    where: {
+      status: "active",
+      OR: [{ dayOfWeek }, { dayOfWeek: -1, specificDate: dateStr }],
+    },
+    include: { alertConfigs: true, user: true },
   });
 
-  const results = [];
+  const results: any[] = [];
 
-  for (const cfg of configs) {
-    // Get today's tracked time for this plan
-    const dateStr = now.toISOString().slice(0, 10);
-    const dayStart = new Date(dateStr);
-    const dayEnd = new Date(dateStr);
-    dayEnd.setDate(dayEnd.getDate() + 1);
-
-    const sessions = await prisma.trackingSession.findMany({
-      where: {
-        userId: cfg.userId,
-        planId: cfg.planId,
-        startTime: { gte: dayStart, lt: dayEnd },
-      },
-    });
-
-    const actualMin = sessions.reduce((s, sess) => s + (sess.durationSec || 0), 0) / 60;
-    const plannedMin = cfg.plan.durationMin;
-
-    // Parse plan time window
-    const [sh, sm] = cfg.plan.startTime.split(":").map(Number);
-    const [eh, em] = cfg.plan.endTime.split(":").map(Number);
+  for (const plan of plans) {
+    const plannedMin = plan.durationMin;
+    const [sh, sm] = plan.startTime.split(":").map(Number);
+    const [eh, em] = plan.endTime.split(":").map(Number);
     const planStart = new Date(now);
     planStart.setHours(sh, sm, 0, 0);
     const planEnd = new Date(now);
     planEnd.setHours(eh, em, 0, 0);
 
-    const elapsedRatio = Math.min(1, Math.max(0,
-      (now.getTime() - planStart.getTime()) / (planEnd.getTime() - planStart.getTime())
-    ));
-    const expectedMin = plannedMin * elapsedRatio;
-    const deficitMin = Math.round(expectedMin - actualMin);
+    // 1. Pre-start reminder (5 min before plan start)
+    const fiveMinBefore = new Date(planStart.getTime() - 5 * 60 * 1000);
+    if (now >= fiveMinBefore && now < planStart) {
+      const alreadyReminded = await prisma.alert.findFirst({
+        where: { planId: plan.id, checkTime: timeStr, status: "sent" },
+      });
+      if (!alreadyReminded) {
+        const alert = await prisma.alert.create({
+          data: {
+            configId: plan.alertConfigs[0]?.id || "auto",
+            userId: plan.userId,
+            planId: plan.id,
+            planTitle: plan.title,
+            checkTime: timeStr,
+            plannedMin,
+            actualMin: 0,
+            deficitMin: plannedMin,
+            status: "sent",
+          },
+        });
 
-    let level: "behind" | "critical" | "incomplete" | null = null;
+        const { dispatchAlert } = await import("./notification/dispatcher.js");
+        await dispatchAlert({
+          level: "behind",
+          planTitle: `⏰ ${plan.title} 即将开始`,
+          plannedMin,
+          actualMin: 0,
+          deficitMin: plannedMin,
+          notifyStudent: true,
+          notifySupervisor: false,
+          supervisorChannel: plan.alertConfigs[0]?.supervisorChannel || "wechat",
+        });
 
-    if (now > planEnd && actualMin < plannedMin * 0.9) {
-      level = "incomplete";
-    } else if (actualMin < expectedMin * 0.3) {
-      level = "critical";
-    } else if (actualMin < expectedMin * 0.7) {
-      level = "behind";
+        results.push({ alert, type: "pre_start" });
+      }
     }
 
-    if (level) {
-      const alert = await prisma.alert.create({
-        data: {
-          configId: cfg.id,
-          userId: cfg.userId,
-          planId: cfg.planId,
+    // 2. During the plan window — check progress
+    if (now >= planStart && now <= planEnd) {
+      const actualMin = await getTodayActualMin(plan.id, plan.userId);
+      const elapsedRatio = Math.min(1, Math.max(0,
+        (now.getTime() - planStart.getTime()) / (planEnd.getTime() - planStart.getTime())
+      ));
+      const expectedMin = plannedMin * elapsedRatio;
+      const deficitMin = Math.round(expectedMin - actualMin);
+      const progressPct = plannedMin > 0 ? Math.round((actualMin / plannedMin) * 100) : 0;
+
+      // Determine level
+      let level: "behind" | "critical" | null = null;
+
+      if (elapsedRatio > 0.3 && actualMin < expectedMin * 0.3) {
+        level = "critical";
+      } else if (elapsedRatio > 0.3 && actualMin < expectedMin * 0.7) {
+        level = "behind";
+      }
+
+      if (level) {
+        const cooldownOk = await checkCooldown(plan.id, level, 20); // 20-min cooldown
+        if (cooldownOk) {
+          const cfg = plan.alertConfigs[0];
+          const alert = await prisma.alert.create({
+            data: {
+              configId: cfg?.id || "auto",
+              userId: plan.userId,
+              planId: plan.id,
+              planTitle: plan.title,
+              checkTime: timeStr,
+              plannedMin,
+              actualMin: Math.round(actualMin),
+              deficitMin,
+              status: "sent",
+            },
+          });
+
+          const { dispatchAlert } = await import("./notification/dispatcher.js");
+          const notifyResults = await dispatchAlert({
+            level,
+            planTitle: plan.title,
+            plannedMin,
+            actualMin: Math.round(actualMin),
+            deficitMin,
+            notifyStudent: cfg?.notifyStudent ?? true,
+            notifySupervisor: cfg?.notifySupervisor ?? true,
+            supervisorChannel: cfg?.supervisorChannel || "wechat",
+          });
+
+          results.push({ alert, notifications: notifyResults, type: level, progressPct });
+        }
+      }
+    }
+
+    // 3. Plan just ended — check completion
+    const fiveMinAfter = new Date(planEnd.getTime() + 5 * 60 * 1000);
+    if (now >= planEnd && now <= fiveMinAfter) {
+      const actualMin = await getTodayActualMin(plan.id, plan.userId);
+      const progressPct = plannedMin > 0 ? Math.round((actualMin / plannedMin) * 100) : 0;
+
+      if (progressPct < 90) {
+        const cooldownOk = await checkCooldown(plan.id, "incomplete", 30);
+        if (cooldownOk) {
+          const cfg = plan.alertConfigs[0];
+          const deficitMin = plannedMin - Math.round(actualMin);
+          const alert = await prisma.alert.create({
+            data: {
+              configId: cfg?.id || "auto",
+              userId: plan.userId,
+              planId: plan.id,
+              planTitle: plan.title,
+              checkTime: timeStr,
+              plannedMin,
+              actualMin: Math.round(actualMin),
+              deficitMin,
+              status: "sent",
+            },
+          });
+
+          const { dispatchAlert } = await import("./notification/dispatcher.js");
+          const notifyResults = await dispatchAlert({
+            level: "incomplete",
+            planTitle: plan.title,
+            plannedMin,
+            actualMin: Math.round(actualMin),
+            deficitMin,
+            notifyStudent: cfg?.notifyStudent ?? true,
+            notifySupervisor: cfg?.notifySupervisor ?? true,
+            supervisorChannel: cfg?.supervisorChannel || "wechat",
+          });
+
+          results.push({ alert, notifications: notifyResults, type: "incomplete", progressPct });
+        }
+      }
+    }
+  }
+
+  // Also check explicitly configured AlertConfigs (backward compat)
+  const explicitConfigs = await prisma.alertConfig.findMany({
+    where: { enabled: true, checkTime: timeStr },
+    include: { plan: true, user: true },
+  });
+
+  for (const cfg of explicitConfigs) {
+    const actualMin = await getTodayActualMin(cfg.planId, cfg.userId);
+    const plannedMin = cfg.plan.durationMin;
+    const deficitMin = plannedMin - Math.round(actualMin);
+
+    if (actualMin < cfg.thresholdMin) {
+      const cooldownOk = await checkCooldown(cfg.planId, "behind", 15);
+      if (cooldownOk) {
+        const alert = await prisma.alert.create({
+          data: {
+            configId: cfg.id,
+            userId: cfg.userId,
+            planId: cfg.planId,
+            planTitle: cfg.plan.title,
+            checkTime: timeStr,
+            plannedMin,
+            actualMin: Math.round(actualMin),
+            deficitMin,
+            status: "sent",
+          },
+        });
+
+        const { dispatchAlert } = await import("./notification/dispatcher.js");
+        await dispatchAlert({
+          level: "behind",
           planTitle: cfg.plan.title,
-          checkTime: timeStr,
           plannedMin,
           actualMin: Math.round(actualMin),
           deficitMin,
-          status: "sent",
-        },
-      });
+          notifyStudent: cfg.notifyStudent,
+          notifySupervisor: cfg.notifySupervisor,
+          supervisorChannel: cfg.supervisorChannel,
+        });
 
-      // Dispatch notifications
-      const { dispatchAlert } = await import("./notification/dispatcher.js");
-      const notifyResults = await dispatchAlert({
-        level,
-        planTitle: cfg.plan.title,
-        plannedMin,
-        actualMin: Math.round(actualMin),
-        deficitMin,
-        notifyStudent: cfg.notifyStudent,
-        notifySupervisor: cfg.notifySupervisor,
-        supervisorChannel: cfg.supervisorChannel,
-      });
-
-      results.push({ alert, notifications: notifyResults });
+        results.push({ alert, type: "explicit_config" });
+      }
     }
   }
 
   return results;
+}
+
+/**
+ * Prevent alert spam: don't re-alert the same plan+level within cooldown minutes.
+ */
+async function checkCooldown(planId: string, level: string, cooldownMin: number): Promise<boolean> {
+  const cooldownAgo = new Date(Date.now() - cooldownMin * 60 * 1000);
+  const recent = await prisma.alert.findFirst({
+    where: {
+      planId,
+      createdAt: { gte: cooldownAgo },
+    },
+  });
+  return !recent;
 }

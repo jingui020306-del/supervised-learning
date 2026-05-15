@@ -76,11 +76,12 @@ function getSupervisorBody(req: NotificationRequest): string {
   return `## ${labels[req.level]}\n\n**计划**：${req.planTitle}\n**计划时长**：${req.plannedMin} 分钟\n**已完成**：${req.actualMin} 分钟 (${pct}%)\n**差额**：${req.deficitMin} 分钟`;
 }
 
-/** Send daily summary to supervisor */
-export async function dispatchDailySummary(supervisorChannel: string, stats: string) {
-  if (supervisorChannel === "wechat") {
-    await sendWeChat("每日学习报告", stats);
-  } else {
-    await sendFeishu("每日学习报告", stats);
-  }
+/** Send daily summary to supervisor — tries all configured channels */
+export async function dispatchDailySummary(_userId: string, stats: string) {
+  const results: any[] = [];
+  const r1 = await sendWeChat("每日学习报告", stats);
+  if (r1.sent) results.push({ channel: "wechat" });
+  const r2 = await sendFeishu("每日学习报告", stats);
+  if (r2.sent) results.push({ channel: "feishu" });
+  return results;
 }
