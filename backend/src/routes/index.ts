@@ -7,6 +7,7 @@ import { dashboardRoutes } from "./dashboard.routes.js";
 import { syncRoutes } from "./sync.routes.js";
 import { appPermissionRoutes } from "./app-permission.routes.js";
 import { excelRoutes } from "./excel.routes.js";
+import { goalRoutes } from "./goal.routes.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
@@ -17,4 +18,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(syncRoutes, { prefix: "/api/v1/sync" });
   await app.register(appPermissionRoutes, { prefix: "/api/v1/apps" });
   await app.register(excelRoutes, { prefix: "/api/v1/excel" });
+  await app.register(goalRoutes, { prefix: "/api/v1/goals" });
 }

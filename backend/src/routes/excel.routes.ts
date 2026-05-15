@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import prisma from "../db.js";
 import { ensureUser } from "../services/user.service.js";
 import { fetchICalFeed, findFreeSlots, autoSchedule } from "../services/calendar.service.js";
+import { parseCourseSchedule } from "../services/course-schedule.service.js";
 
 export async function excelRoutes(app: FastifyInstance) {
   /**
@@ -14,7 +15,7 @@ export async function excelRoutes(app: FastifyInstance) {
    *   Column C: 关联App (Optional — app name for tracking)
    */
   app.post("/upload", async (request) => {
-    const data = await request.file();
+    const data = await (request as any).file();
     if (!data) return { error: "No file uploaded" };
 
     const buffer = await data.toBuffer();
@@ -51,7 +52,7 @@ export async function excelRoutes(app: FastifyInstance) {
    *   - date?: string (YYYY-MM-DD, default today)
    */
   app.post("/auto-schedule", async (request) => {
-    const data = await request.file();
+    const data = await (request as any).file();
     if (!data) return { error: "No Excel file uploaded" };
 
     const buffer = await data.toBuffer();
@@ -154,4 +155,51 @@ export async function excelRoutes(app: FastifyInstance) {
       createdPlans,
     };
   });
+
+  // Parse course schedule Excel (grid format)
+  app.post("/course-schedule", async (request) => {
+    const data = await (request as any).file();
+    if (!data) return { error: "No file uploaded" };
+
+    const buffer = await data.toBuffer();
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) return { error: "Empty workbook" };
+
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
+    const { courses, freeSlots } = parseCourseSchedule(rows);
+
+    // Create plans from course schedule
+    const userId = (request.query as any).userId || "student-1";
+    await ensureUser(userId);
+
+    const createdPlans = [];
+    for (const c of courses) {
+      const plan = await prisma.plan.create({
+        data: {
+          userId,
+          title: c.title,
+          startTime: c.startTime,
+          endTime: c.endTime,
+          durationMin: timeToMinutes(c.startTime, c.endTime),
+          dayOfWeek: c.dayOfWeek,
+          status: "active",
+        },
+      });
+      createdPlans.push(plan);
+    }
+
+    return {
+      status: "parsed",
+      coursesFound: courses.length,
+      freeSlots,
+      createdPlans,
+    };
+  });
+}
+
+function timeToMinutes(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
 }

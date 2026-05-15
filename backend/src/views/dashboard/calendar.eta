@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>日历排程 · 学习监督</title>
+  <link rel="stylesheet" href="/static/design-system.css">
+  <style>
+    .cal-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 2px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; font-size: var(--text-xs); }
+    .cal-cell { background: var(--bg-surface); padding: 4px; min-height: 36px; cursor: pointer; transition: background var(--fast); position: relative; }
+    .cal-cell:hover { background: var(--green-50); }
+    .cal-cell.busy { background: #fef2f2; cursor: not-allowed; }
+    .cal-cell.busy:hover { background: #fee2e2; }
+    .cal-cell.free { background: var(--green-50); border: 1px dashed var(--green-500); }
+    .cal-cell.drag-over { background: var(--green-100) !important; border-color: var(--green-600) !important; }
+    .cal-cell.selected { background: #dbeafe !important; border-color: #3b82f6 !important; }
+    .cal-header { background: var(--bg-hover); font-weight: 600; text-align: center; padding: 8px 4px; font-size: var(--text-xs); }
+    .cal-time { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.65rem; }
+    .task-pool { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+    .task-chip { padding: 6px 12px; background: var(--green-100); border: 1px solid var(--green-500); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 500; cursor: grab; user-select: none; white-space: nowrap; }
+    .task-chip:active { cursor: grabbing; }
+    .task-chip.dragging { opacity: 0.4; }
+    .granularity-select { display: flex; gap: 4px; margin-bottom: 12px; }
+    .gran-btn { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-full); font-size: var(--text-xs); cursor: pointer; background: var(--bg-surface); }
+    .gran-btn.active { background: var(--green-100); border-color: var(--green-500); color: var(--green-700); font-weight: 600; }
+    .plan-in-cell { font-size: 0.6rem; padding: 1px 3px; background: var(--green-100); border-radius: 2px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="/dashboard">← 返回</a>
+      <h1>日历排程</h1>
+      <span></span>
+    </header>
+
+    <nav class="nav-pills">
+      <a class="nav-pill" href="/dashboard">今日</a>
+      <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/plans">计划</a>
+      <a class="nav-pill active" href="/dashboard/calendar">日历</a>
+      <a class="nav-pill" href="/dashboard/goals">目标</a>
+    </nav>
+
+    <div class="section-title">粒度选择</div>
+    <div class="granularity-select" id="granularity">
+      <button class="gran-btn" data-min="30">30分钟</button>
+      <button class="gran-btn active" data-min="60">1小时</button>
+      <button class="gran-btn" data-min="120">2小时</button>
+    </div>
+
+    <div class="section-title">待排任务 (拖拽到日历空格)</div>
+    <div class="task-pool" id="task-pool"></div>
+
+    <div class="section-title">本周日历</div>
+    <div id="calendar"></div>
+
+    <button class="btn btn-primary btn-full" onclick="saveSchedule()" style="margin-top:16px;">保存排程</button>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+    let plans = [];
+    let unscheduledTasks = [];
+    let granularity = 60;
+    let draggedTask = null;
+
+    const DAYS = ["日","一","二","三","四","五","六"];
+    const HOURS = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
+
+    document.getElementById("granularity").addEventListener("click", (e) => {
+      if (e.target.classList.contains("gran-btn")) {
+        document.querySelectorAll(".gran-btn").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        granularity = parseInt(e.target.dataset.min);
+        renderCalendar();
+      }
+    });
+
+    async function loadData() {
+      try {
+        const [plansRes] = await Promise.all([
+          fetch(`/api/v1/plans?userId=${USER_ID}`),
+        ]);
+        plans = await plansRes.json();
+        unscheduledTasks = plans.filter(p => !p.startTime || p.status === "active");
+        renderTaskPool();
+        renderCalendar();
+      } catch (e) {
+        document.getElementById("calendar").innerHTML = '<p class="empty-state">加载失败</p>';
+      }
+    }
+
+    function renderTaskPool() {
+      const html = unscheduledTasks.map((t, i) => `
+        <span class="task-chip" draggable="true" data-idx="${i}" ondragstart="onDragStart(event, ${i})" ondragend="onDragEnd(event)">
+          ${t.title} (${t.durationMin}min)
+        </span>
+      `).join("");
+      document.getElementById("task-pool").innerHTML = html || '<span style="color:var(--text-muted);font-size:var(--text-sm);">暂无待排任务，上传 Excel 或在计划页面创建</span>';
+    }
+
+    function renderCalendar() {
+      // Build busy map
+      const busyMap = {};
+      for (const p of plans) {
+        if (!p.startTime || !p.endTime) continue;
+        const key = `${p.dayOfWeek}-${p.startTime}`;
+        busyMap[key] = p.title;
+      }
+
+      let html = '<div class="cal-grid">';
+      html += '<div class="cal-header"></div>';
+      for (let d = 0; d < 7; d++) {
+        html += `<div class="cal-header">周${DAYS[d]}</div>`;
+      }
+
+      for (const hour of HOURS) {
+        html += `<div class="cal-time">${hour}</div>`;
+        for (let d = 0; d < 7; d++) {
+          const key = `${d}-${hour}`;
+          const isBusy = busyMap[key];
+          const cls = isBusy ? "busy" : "free";
+          html += `<div class="cal-cell ${cls}" data-day="${d}" data-time="${hour}"
+            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(${d},'${hour}')">
+            ${isBusy ? `<span class="plan-in-cell">${isBusy}</span>` : ""}
+          </div>`;
+        }
+      }
+      html += "</div>";
+      document.getElementById("calendar").innerHTML = html;
+    }
+
+    function onDragStart(e, idx) {
+      draggedTask = idx;
+      e.target.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    }
+
+    function onDragEnd(e) {
+      e.target.classList.remove("dragging");
+      draggedTask = null;
+      document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.target.classList.add("drag-over");
+    }
+
+    function onDragLeave(e) {
+      e.target.classList.remove("drag-over");
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      e.target.classList.remove("drag-over");
+      if (draggedTask === null) return;
+
+      const day = parseInt(e.target.dataset.day);
+      const time = e.target.dataset.time;
+      if (isNaN(day) || !time) return;
+
+      const task = unscheduledTasks[draggedTask];
+      task.dayOfWeek = day;
+      task.startTime = time;
+
+      // Calculate end time
+      const [h, m] = time.split(":").map(Number);
+      const endTotal = h * 60 + m + (task.durationMin || granularity);
+      const eh = Math.floor(endTotal / 60);
+      const em = endTotal % 60;
+      task.endTime = `${String(eh).padStart(2,"0")}:${String(em).padStart(2,"0")}`;
+
+      toast(`已安排: ${task.title} → 周${DAYS[day]} ${time}`);
+      renderCalendar();
+    }
+
+    function onCellClick(day, time) {
+      // Highlight cell
+      document.querySelectorAll(".cal-cell.selected").forEach(el => el.classList.remove("selected"));
+      const cell = document.querySelector(`.cal-cell[data-day="${day}"][data-time="${time}"]`);
+      if (cell) cell.classList.add("selected");
+    }
+
+    async function saveSchedule() {
+      const toSave = unscheduledTasks.filter(t => t.dayOfWeek !== undefined);
+      if (toSave.length === 0) return toast("没有变更需要保存");
+
+      const btn = document.querySelector(".save-btn, .btn-full");
+      btn.disabled = true; btn.textContent = "保存中...";
+      let saved = 0;
+      for (const t of toSave) {
+        try {
+          await fetch(`/api/v1/plans/${t.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dayOfWeek: t.dayOfWeek, startTime: t.startTime, endTime: t.endTime }),
+          });
+          saved++;
+        } catch (e) {}
+      }
+      btn.disabled = false; btn.textContent = "保存排程";
+      toast(`已保存 ${saved} 项计划`);
+      loadData();
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

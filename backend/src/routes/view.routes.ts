@@ -79,4 +79,14 @@ export async function viewRoutes(app: FastifyInstance) {
   app.get("/notify", async (_request, reply) => {
     return reply.view("dashboard/notify.eta", {});
   });
+
+  // Calendar (drag-and-drop scheduling)
+  app.get("/calendar", async (_request, reply) => {
+    return reply.view("dashboard/calendar.eta", {});
+  });
+
+  // Goals
+  app.get("/goals", async (_request, reply) => {
+    return reply.view("dashboard/goals.eta", {});
+  });
 }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>学习目标 · 学习监督</title>
+  <link rel="stylesheet" href="/static/design-system.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="/dashboard">← 返回</a>
+      <h1>学习目标</h1>
+      <span></span>
+    </header>
+
+    <nav class="nav-pills">
+      <a class="nav-pill" href="/dashboard">今日</a>
+      <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/plans">计划</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
+      <a class="nav-pill active" href="/dashboard/goals">目标</a>
+    </nav>
+
+    <!-- Add goal -->
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px;">设定新目标</div>
+      <input class="input" id="goal-title" placeholder="目标名称 (如: 每周学习10小时)" style="margin-bottom:8px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="input" id="goal-target" type="number" value="600" placeholder="目标时长(分钟)" style="width:120px;">
+        <select class="input" id="goal-period" style="width:100px;">
+          <option value="weekly">每周</option>
+          <option value="daily">每日</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="createGoal()">设定</button>
+      </div>
+    </div>
+
+    <div class="section-title">目标进度</div>
+    <div id="goal-list"><p class="empty-state">加载中...</p></div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+
+    async function loadGoals() {
+      try {
+        const [goalsRes, progressRes] = await Promise.all([
+          fetch(`/api/v1/goals?userId=${USER_ID}`),
+          fetch(`/api/v1/goals/progress?userId=${USER_ID}`),
+        ]);
+        const goals = await goalsRes.json();
+        const progress = await progressRes.json();
+        const progressMap = {};
+        for (const p of progress) { progressMap[p.id] = p; }
+
+        const html = Array.isArray(goals) ? goals.map(g => {
+          const p = progressMap[g.id];
+          const pct = p ? p.progress : 0;
+          const cls = pct >= 90 ? "high" : pct >= 50 ? "medium" : "low";
+          return `
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-weight:600;">${g.title}</span>
+                <span class="badge badge-${pct>=90?'success':pct>=50?'warning':'danger'}">${pct}%</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:6px;">
+                ${g.period==='daily'?'每日':'每周'} · 目标 ${g.targetMin} 分钟 · 当前 ${p?p.currentMin:0} 分钟
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div>
+              </div>
+            </div>
+          `;
+        }).join("");
+        document.getElementById("goal-list").innerHTML = html || '<p class="empty-state"><div class="icon">🎯</div><p>还没有设定学习目标</p></p>';
+      } catch (e) {
+        document.getElementById("goal-list").innerHTML = '<p class="empty-state">加载失败</p>';
+      }
+    }
+
+    async function createGoal() {
+      const title = document.getElementById("goal-title").value.trim();
+      const targetMin = parseInt(document.getElementById("goal-target").value) || 600;
+      const period = document.getElementById("goal-period").value;
+      if (!title) return toast("请输入目标名称");
+      try {
+        await fetch("/api/v1/goals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: USER_ID, title, targetMin, period,
+            startDate: new Date().toISOString().slice(0,10),
+            status: "active",
+          }),
+        });
+        document.getElementById("goal-title").value = "";
+        toast("目标已设定 ✅");
+        loadGoals();
+      } catch (e) { toast("创建失败"); }
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);
+    }
+
+    loadGoals();
+  </script>
+</body>
+</html>
