@@ -137,7 +137,9 @@ RELEASE_EOF
 cat > "$RELEASE_DIR/🌳启动.command" << 'LAUNCHER'
 #!/bin/bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
-"$DIR/supervised-learning-macos" &
+nohup "$DIR/supervised-learning-macos" > /dev/null 2>&1 &
+osascript -e 'tell app "Terminal" to close first window' &>/dev/null &
+exit 0
 LAUNCHER
 chmod +x "$RELEASE_DIR/🌳启动.command"
 
