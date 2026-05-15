@@ -4,18 +4,18 @@ import { ensureUser } from "../services/user.service.js";
 
 /** Default learning apps with Chinese names */
 const DEFAULT_APPS = [
-  { appName: "新东方大学考试", bundleId: "com.neworiental.college", icon: "📚" },
-  { appName: "小鹅通学员版", bundleId: "com.xiaoetong.student", icon: "🎓" },
-  { appName: "网易有道词典", bundleId: "com.youdao.dict", icon: "📖" },
-  { appName: "百度网盘", bundleId: "com.baidu.netdisk", icon: "☁️" },
-  { appName: "腾讯课堂", bundleId: "com.tencent.edu", icon: "🏫" },
-  { appName: "得到", bundleId: "com.luojilab.dedao", icon: "🎯" },
-  { appName: "知乎", bundleId: "com.zhihu.ios", icon: "💡" },
-  { appName: "哔哩哔哩", bundleId: "tv.danmaku.bili", icon: "▶️" },
-  { appName: "微信读书", bundleId: "com.tencent.weread", icon: "📕" },
-  { appName: "Notability", bundleId: "com.gingerlabs.Notability", icon: "✏️" },
-  { appName: "GoodNotes", bundleId: "com.goodnotesapp.x", icon: "📝" },
-  { appName: "MarginNote", bundleId: "com.marginnote.marginnote3", icon: "🗂️" },
+  { appName: "新东方大学考试", bundleId: "com.neworiental.college", icon: "" },
+  { appName: "小鹅通学员版", bundleId: "com.xiaoetong.student", icon: "" },
+  { appName: "网易有道词典", bundleId: "com.youdao.dict", icon: "" },
+  { appName: "百度网盘", bundleId: "com.baidu.netdisk", icon: "" },
+  { appName: "腾讯课堂", bundleId: "com.tencent.edu", icon: "" },
+  { appName: "得到", bundleId: "com.luojilab.dedao", icon: "" },
+  { appName: "知乎", bundleId: "com.zhihu.ios", icon: "" },
+  { appName: "哔哩哔哩", bundleId: "tv.danmaku.bili", icon: "" },
+  { appName: "微信读书", bundleId: "com.tencent.weread", icon: "" },
+  { appName: "Notability", bundleId: "com.gingerlabs.Notability", icon: "" },
+  { appName: "GoodNotes", bundleId: "com.goodnotesapp.x", icon: "" },
+  { appName: "MarginNote", bundleId: "com.marginnote.marginnote3", icon: "" },
 ];
 
 export async function appPermissionRoutes(app: FastifyInstance) {
@@ -70,7 +70,7 @@ export async function appPermissionRoutes(app: FastifyInstance) {
         userId,
         appName,
         bundleId: bundleId || def?.bundleId || "",
-        icon: def?.icon || "📱",
+        icon: def?.icon || "",
         enabled: enabled ?? true,
       },
     });

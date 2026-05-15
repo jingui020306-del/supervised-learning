@@ -18,22 +18,23 @@
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
       <a class="nav-pill" href="/dashboard/calendar">日历</a>
-      <a class="nav-pill" href="/dashboard/goals">目标</a>
+      <a class="nav-pill" href="/dashboard/plans">计划</a>
+      <a class="nav-pill" href="/dashboard/apps">App</a>
       <a class="nav-pill active" href="/dashboard/settings">设置</a>
-    </nav>
+    
 
     <!-- Quiet hours -->
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">静默时段 (免打扰)</div>
-      <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:12px;">此时间段内系统不触发任何告警通知，节省资源</p>
+      <p style="font-size:var(--fs-xs);color:var(--text-3);margin-bottom:12px;">此时间段内系统不触发任何告警通知，节省资源</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div>
-          <label style="font-size:var(--text-xs);color:var(--text-muted);">开始</label>
-          <input class="input" type="time" id="quiet-start" style="font-size:var(--text-sm);">
+          <label style="font-size:var(--fs-xs);color:var(--text-3);">开始</label>
+          <input class="input" type="time" id="quiet-start" style="font-size:var(--fs-sm);">
         </div>
         <div>
-          <label style="font-size:var(--text-xs);color:var(--text-muted);">结束</label>
-          <input class="input" type="time" id="quiet-end" style="font-size:var(--text-sm);">
+          <label style="font-size:var(--fs-xs);color:var(--text-3);">结束</label>
+          <input class="input" type="time" id="quiet-end" style="font-size:var(--fs-sm);">
         </div>
       </div>
     </div>
@@ -41,7 +42,7 @@
     <!-- Granularity -->
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">追踪粒度</div>
-      <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:12px;">时间记录精度：越粗粒度越省资源</p>
+      <p style="font-size:var(--fs-xs);color:var(--text-3);margin-bottom:12px;">时间记录精度：越粗粒度越省资源</p>
       <div style="display:flex;gap:6px;" id="granularity-group">
         <button class="btn btn-secondary btn-sm gran-btn" data-gran="30">30 分钟</button>
         <button class="btn btn-secondary btn-sm gran-btn active" data-gran="60">1 小时</button>
@@ -53,7 +54,7 @@
     <!-- System info -->
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">系统状态</div>
-      <div id="sys-info" style="font-size:var(--text-sm);color:var(--text-secondary);"></div>
+      <div id="sys-info" style="font-size:var(--fs-sm);color:var(--text-2);"></div>
     </div>
 
     <button class="btn btn-primary btn-full" onclick="saveSettings()" style="margin-top:16px;">保存设置</button>
@@ -113,7 +114,7 @@
             granularity,
           }),
         });
-        toast("设置已保存 ✅");
+        toast("设置已保存 ");
         btn.textContent = "保存设置";
         btn.disabled = false;
       } catch (e) {

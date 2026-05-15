@@ -17,13 +17,13 @@
     <nav class="nav-pills">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill active" href="/dashboard/apps">App</a>
-      <a class="nav-pill" href="/dashboard/alerts">告警</a>
-      <a class="nav-pill" href="/dashboard/notify">通知</a>
-    </nav>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
+    
 
-    <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:16px;">
+    <p style="font-size:var(--fs-sm);color:var(--text-2);margin-bottom:16px;">
       选择允许监督系统追踪的应用。仅已授权的 App 会被记录和分析。
     </p>
 
@@ -35,10 +35,10 @@
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <span style="font-size:var(--text-sm);color:var(--text-muted);">
-        已授权 <strong id="granted-count" style="color:var(--text-primary);">0</strong> / <span id="total-count">0</span>
+      <span style="font-size:var(--fs-sm);color:var(--text-3);">
+        已授权 <strong id="granted-count" style="color:var(--text);">0</strong> / <span id="total-count">0</span>
       </span>
-      <input class="input" type="text" id="search" placeholder="搜索..." style="width:160px;padding:6px 12px;font-size:var(--text-sm);" oninput="renderList()">
+      <input class="input" type="text" id="search" placeholder="搜索..." style="width:160px;padding:6px 12px;font-size:var(--fs-sm);" oninput="renderList()">
     </div>
 
     <div id="app-list"><p class="empty-state">加载中...</p></div>
@@ -72,10 +72,10 @@
       const html = filtered.map((app, i) => `
         <div class="card ${app.enabled ? 'active' : ''}" style="display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-            <span style="font-size:1.5rem;">${app.icon || '📱'}</span>
+            <span style="font-size:1.5rem;">${app.icon || ''}</span>
             <div style="min-width:0;">
-              <div style="font-weight:600;font-size:var(--text-base);">${app.appName}</div>
-              <div style="font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
+              <div style="font-weight:600;font-size:var(--fs);">${app.appName}</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
@@ -144,10 +144,10 @@
       document.getElementById("app-list").innerHTML = filtered.map(app => `
         <div class="card ${app.enabled ? 'active' : ''}" style="display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-            <span style="font-size:1.5rem;">${app.icon || '📱'}</span>
+            <span style="font-size:1.5rem;">${app.icon || ''}</span>
             <div style="min-width:0;">
-              <div style="font-weight:600;font-size:var(--text-base);">${app.appName}</div>
-              <div style="font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
+              <div style="font-weight:600;font-size:var(--fs);">${app.appName}</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
@@ -174,7 +174,7 @@
         });
         changed.clear();
         btn.textContent = "保存更改";
-        toast("已保存 ✅");
+        toast("已保存 ");
       } catch (e) {
         btn.disabled = false;
         btn.textContent = "网络错误，重试";

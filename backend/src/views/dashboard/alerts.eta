@@ -17,11 +17,11 @@
     <nav class="nav-pills">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
-      <a class="nav-pill active" href="/dashboard/alerts">告警</a>
-      <a class="nav-pill" href="/dashboard/notify">通知</a>
-    </nav>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
+    
 
     <div id="alert-content"><p class="empty-state">加载中...</p></div>
     <div class="toast" id="toast"></div>
@@ -36,7 +36,7 @@
         const res = await fetch(`/api/v1/alerts/history?userId=${USER_ID}&limit=50`);
         const alerts = await res.json();
         if (!Array.isArray(alerts) || alerts.length === 0) {
-          document.getElementById("alert-content").innerHTML = '<div class="empty-state"><div class="icon">🎉</div><p>暂无告警记录</p></div>';
+          document.getElementById("alert-content").innerHTML = '<div class="empty-state"><div class="icon"></div><p>暂无告警记录</p></div>';
           return;
         }
         const html = alerts.map(a => {
@@ -48,7 +48,7 @@
                 <span style="font-weight:600;">${a.planTitle}</span>
                 <span class="badge ${cls}">${label}</span>
               </div>
-              <div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:8px;">
+              <div style="font-size:var(--fs-xs);color:var(--text-2);margin-bottom:8px;">
                 计划 ${a.plannedMin} 分钟 · 实际 ${a.actualMin} 分钟 · 差额 ${a.deficitMin} 分钟 · ${time}
               </div>
               <div style="display:flex;gap:6px;">

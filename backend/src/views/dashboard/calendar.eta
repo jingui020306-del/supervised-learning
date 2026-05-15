@@ -6,24 +6,24 @@
   <title>日历排程 · 学习监督</title>
   <link rel="stylesheet" href="/static/design-system.css">
   <style>
-    .cal-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 2px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; font-size: var(--text-xs); }
-    .cal-cell { background: var(--bg-surface); padding: 4px; min-height: 36px; cursor: pointer; transition: background var(--fast); position: relative; }
-    .cal-cell:hover { background: var(--green-50); }
+    .cal-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; font-size: var(--fs-xs); }
+    .cal-cell { background: var(--surface); padding: 4px; min-height: 36px; cursor: pointer; transition: background var(--fast); position: relative; }
+    .cal-cell:hover { background: var(--brand-lt); }
     .cal-cell.busy { background: #fef2f2; cursor: not-allowed; }
     .cal-cell.busy:hover { background: #fee2e2; }
-    .cal-cell.free { background: var(--green-50); border: 1px dashed var(--green-500); }
-    .cal-cell.drag-over { background: var(--green-100) !important; border-color: var(--green-600) !important; }
+    .cal-cell.free { background: var(--brand-lt); border: 1px dashed var(--brand); }
+    .cal-cell.drag-over { background: var(--brand-lt) !important; border-color: var(--brand) !important; }
     .cal-cell.selected { background: #dbeafe !important; border-color: #3b82f6 !important; }
-    .cal-header { background: var(--bg-hover); font-weight: 600; text-align: center; padding: 8px 4px; font-size: var(--text-xs); }
-    .cal-time { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.65rem; }
-    .task-pool { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
-    .task-chip { padding: 6px 12px; background: var(--green-100); border: 1px solid var(--green-500); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 500; cursor: grab; user-select: none; white-space: nowrap; }
+    .cal-header { background: var(--subtle); font-weight: 600; text-align: center; padding: 8px 4px; font-size: var(--fs-xs); }
+    .cal-time { display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 0.65rem; }
+    .task-pool { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+    .task-chip { padding: 6px 12px; background: var(--brand-lt); border: 1px solid var(--brand); border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 500; cursor: grab; user-select: none; white-space: nowrap; }
     .task-chip:active { cursor: grabbing; }
     .task-chip.dragging { opacity: 0.4; }
     .granularity-select { display: flex; gap: 4px; margin-bottom: 12px; }
-    .gran-btn { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-full); font-size: var(--text-xs); cursor: pointer; background: var(--bg-surface); }
-    .gran-btn.active { background: var(--green-100); border-color: var(--green-500); color: var(--green-700); font-weight: 600; }
-    .plan-in-cell { font-size: 0.6rem; padding: 1px 3px; background: var(--green-100); border-radius: 2px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gran-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--r-full); font-size: var(--fs-xs); cursor: pointer; background: var(--surface); }
+    .gran-btn.active { background: var(--brand-lt); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+    .plan-in-cell { font-size: 0.6rem; padding: 1px 3px; background: var(--brand-lt); border-radius: 2px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 <body>
@@ -37,10 +37,11 @@
     <nav class="nav-pills">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
-      <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill active" href="/dashboard/calendar">日历</a>
-      <a class="nav-pill" href="/dashboard/goals">目标</a>
-    </nav>
+      <a class="nav-pill" href="/dashboard/plans">计划</a>
+      <a class="nav-pill" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
+    
 
     <div class="section-title">粒度选择</div>
     <div class="granularity-select" id="granularity">
@@ -98,7 +99,7 @@
           ${t.title} (${t.durationMin}min)
         </span>
       `).join("");
-      document.getElementById("task-pool").innerHTML = html || '<span style="color:var(--text-muted);font-size:var(--text-sm);">暂无待排任务，上传 Excel 或在计划页面创建</span>';
+      document.getElementById("task-pool").innerHTML = html || '<span style="color:var(--text-3);font-size:var(--fs-sm);">暂无待排任务，上传 Excel 或在计划页面创建</span>';
     }
 
     function renderCalendar() {

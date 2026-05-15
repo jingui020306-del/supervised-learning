@@ -2,87 +2,68 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>学习监督 · 仪表盘</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Trackly · 仪表盘</title>
   <link rel="stylesheet" href="/static/design-system.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="app-header">
-      <span></span>
-      <h1>学习监督</h1>
-      <span style="font-size:var(--text-sm);color:var(--text-muted);"><%= it.date %></span>
+      <span style="font-size:var(--fs-xs);color:var(--text-3);"><%= it.date %></span>
+      <h1>Trackly</h1>
+      <span style="font-size:var(--fs-xs);color:var(--brand);font-weight:600;">● 在线</span>
     </header>
 
     <nav class="nav-pills">
       <a class="nav-pill active" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
-      <a class="nav-pill" href="/dashboard/alerts">告警</a>
-      <a class="nav-pill" href="/dashboard/notify">通知</a>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
     </nav>
 
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-label">计划学习</div>
-        <div class="stat-value"><%= it.summary.totalPlanned %> 分钟</div>
+    <!-- Goal + Summary (replaces heavy stat grid) -->
+    <div class="goal-bar">
+      <% const pct = it.summary.completionRate; %>
+      <div class="goal-ring" style="background: conic-gradient(var(--brand) <%= pct %>%, var(--subtle) <%= pct %>%);">
+        <span style="background:var(--surface);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);"><%= pct %>%</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">实际学习</div>
-        <div class="stat-value <%= it.summary.completionRate >= 90 ? 'good' : it.summary.completionRate >= 50 ? 'warn' : 'bad' %>"><%= it.summary.totalActual %> 分钟</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">完成率</div>
-        <div class="stat-value <%= it.summary.completionRate >= 90 ? 'good' : it.summary.completionRate >= 50 ? 'warn' : 'bad' %>"><%= it.summary.completionRate %>%</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">今日计划</div>
-        <div class="stat-value"><%= it.plans.length %> 项</div>
+      <div class="goal-info">
+        <div class="title"><%= it.summary.totalActual %> / <%= it.summary.totalPlanned %> 分钟</div>
+        <div class="sub">今日目标 · <%= it.plans.length %><% if (it.plans.length === 0) { %> 项计划<% } else { %><% const done = it.plans.filter(function(p){return p.progress>=90}).length; %> 项计划 · <%= done %> 已完成<% } %></div>
       </div>
     </div>
 
     <% if (it.plans.length === 0) { %>
       <div class="empty-state">
-        <div class="icon">📋</div>
+        <div class="icon">—</div>
         <p>今天还没有学习计划</p>
-        <p style="font-size:var(--text-xs);margin-top:4px;">在 Super Productivity 中添加任务，或在此创建计划</p>
+        <p style="font-size:var(--fs-xs);">上传 Excel 或在计划页面创建</p>
       </div>
     <% } %>
 
-    <% it.plans.forEach(function(plan, i) { %>
-      <% const colorClass = plan.progress >= 90 ? 'high' : plan.progress >= 50 ? 'medium' : 'low'; %>
-      <div class="glass-card <%= plan.progress < 50 ? 'glow' : '' %> animate-in" style="animation-delay:<%= i * 60 %>ms;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+    <% it.plans.forEach(function(plan) { %>
+      <% const cls = plan.progress >= 90 ? 'high' : plan.progress >= 50 ? 'medium' : 'low'; %>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
           <div>
-            <div style="font-weight:600;font-size:var(--text-base);"><%= plan.title %></div>
-            <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">
-              ⏱ <%= plan.startTime %> - <%= plan.endTime %>
-              <% if (plan.appName) { %> · <%= plan.appName %><% } %>
-            </div>
+            <div style="font-weight:600;"><%= plan.title %></div>
+            <div style="font-size:var(--fs-xs);color:var(--text-3);"><%= plan.startTime %>-<%= plan.endTime %><% if (plan.appName) { %> · <%= plan.appName %><% } %></div>
           </div>
-          <span class="badge <%= plan.progress >= 90 ? 'badge-success' : plan.progress >= 50 ? 'badge-warning' : 'badge-danger' %>"><%= plan.progress %>%</span>
+          <span style="font-weight:700;font-size:var(--fs-sm);color:var(--<%= cls === 'high' ? 'brand' : cls === 'medium' ? 'amber' : 'red' %>);"><%= plan.progress %>%</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill <%= colorClass %>" style="width:<%= Math.min(plan.progress, 100) %>%"></div>
+          <div class="progress-fill <%= cls %>" style="width:<%= Math.min(plan.progress, 100) %>%"></div>
         </div>
         <div class="progress-label">
-          <span>已完成 <%= plan.actualMin %> 分钟</span>
+          <span><%= plan.actualMin %> 分钟</span>
           <span>目标 <%= plan.plannedMin %> 分钟</span>
         </div>
       </div>
     <% }) %>
   </div>
-
   <div class="toast" id="toast"></div>
-  <script>
-    // Auto-refresh every 30s
-    setInterval(() => location.reload(), 30000);
-    function showToast(msg) {
-      const t = document.getElementById("toast");
-      t.textContent = msg; t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2200);
-    }
-  </script>
+  <script>setInterval(function(){location.reload()},30000);</script>
 </body>
 </html>

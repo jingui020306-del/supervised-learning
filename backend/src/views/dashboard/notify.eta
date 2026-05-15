@@ -17,11 +17,11 @@
     <nav class="nav-pills">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
-      <a class="nav-pill" href="/dashboard/alerts">告警</a>
-      <a class="nav-pill active" href="/dashboard/notify">通知</a>
-    </nav>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
+    
 
     <!-- Reminder template -->
     <div class="section-title">提醒消息模板</div>
@@ -29,10 +29,10 @@
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">进度落后提醒（学生端）</div>
       <textarea class="textarea" id="tpl-student-behind" onchange="markChanged()">
-⏰ {planTitle} 进度落后
+ {planTitle} 进度落后
 当前完成 {progress}%，还差 {deficit} 分钟
 打开 App 继续学习吧！</textarea>
-      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">
+      <div style="font-size:var(--fs-xs);color:var(--text-3);margin-top:4px;">
         可用变量：<code>{planTitle}</code> <code>{progress}</code> <code>{deficit}</code> <code>{planned}</code> <code>{actual}</code>
       </div>
     </div>
@@ -40,7 +40,7 @@
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">进度落后提醒（监督者端）</div>
       <textarea class="textarea" id="tpl-supervisor-behind" onchange="markChanged()">
-📊 学习监督提醒
+ 学习监督提醒
 {planTitle} 进度落后，当前完成 {progress}%
 计划 {planned} 分钟，实际 {actual} 分钟，差额 {deficit} 分钟</textarea>
     </div>
@@ -48,7 +48,7 @@
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">任务未完成提醒</div>
       <textarea class="textarea" id="tpl-incomplete" onchange="markChanged()">
-❌ {planTitle} 未完成！
+ {planTitle} 未完成！
 计划时间已过，仅完成 {progress}%
 计划 {planned} 分钟，实际 {actual} 分钟</textarea>
     </div>
@@ -58,8 +58,8 @@
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">监督者通知渠道</div>
       <div class="tag-row" id="channel-tags">
-        <span class="tag selected" data-channel="wechat" onclick="toggleChannel('wechat')">💬 微信</span>
-        <span class="tag" data-channel="feishu" onclick="toggleChannel('feishu')">📨 飞书</span>
+        <span class="tag selected" data-channel="wechat" onclick="toggleChannel('wechat')"> 微信</span>
+        <span class="tag" data-channel="feishu" onclick="toggleChannel('feishu')"> 飞书</span>
       </div>
     </div>
 
@@ -70,7 +70,7 @@
         <input class="input" type="text" id="new-contact-phone" placeholder="手机号 (可选)">
         <button class="btn btn-primary btn-sm" onclick="addContact()" style="flex-shrink:0;">+</button>
       </div>
-      <div id="contact-list" style="font-size:var(--text-sm);color:var(--text-muted);">加载中...</div>
+      <div id="contact-list" style="font-size:var(--fs-sm);color:var(--text-3);">加载中...</div>
     </div>
 
     <button class="btn btn-primary btn-full" onclick="saveAll()" id="save-btn" style="margin-top:16px;">保存设置</button>
@@ -133,10 +133,10 @@
 
     function renderContacts() {
       const html = contacts.map(c => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
           <div>
             <span style="font-weight:500;">${c.name}</span>
-            ${c.phone ? `<span style="color:var(--text-muted);margin-left:8px;">${c.phone}</span>` : ""}
+            ${c.phone ? `<span style="color:var(--text-3);margin-left:8px;">${c.phone}</span>` : ""}
           </div>
           <button class="btn btn-danger btn-sm" onclick="removeContact('${c.id}')" style="padding:2px 8px;">✕</button>
         </div>
@@ -165,7 +165,7 @@
           }),
         });
         dirty = false;
-        btn.textContent = "已保存 ✅";
+        btn.textContent = "已保存 ";
         setTimeout(() => { btn.textContent = "保存设置"; btn.disabled = false; }, 1500);
         toast("设置已保存");
       } catch (e) {

@@ -17,23 +17,23 @@
     <nav class="nav-pills">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill active" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
-      <a class="nav-pill" href="/dashboard/alerts">告警</a>
-      <a class="nav-pill" href="/dashboard/notify">通知</a>
-    </nav>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
+    
 
     <!-- Quick add form -->
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px;">快速创建计划</div>
       <input class="input" type="text" id="plan-title" placeholder="计划标题..." style="margin-bottom:8px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <input class="input" type="time" id="plan-start" value="09:00" style="font-size:var(--text-sm);">
-        <input class="input" type="time" id="plan-end" value="10:00" style="font-size:var(--text-sm);">
+        <input class="input" type="time" id="plan-start" value="09:00" style="font-size:var(--fs-sm);">
+        <input class="input" type="time" id="plan-end" value="10:00" style="font-size:var(--fs-sm);">
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <input class="input" type="number" id="plan-duration" value="60" placeholder="时长(分钟)" style="width:100px;font-size:var(--text-sm);">
-        <input class="input" type="text" id="plan-app" placeholder="关联 App (可选)" style="flex:1;font-size:var(--text-sm);">
+        <input class="input" type="number" id="plan-duration" value="60" placeholder="时长(分钟)" style="width:100px;font-size:var(--fs-sm);">
+        <input class="input" type="text" id="plan-app" placeholder="关联 App (可选)" style="flex:1;font-size:var(--fs-sm);">
         <button class="btn btn-primary btn-sm" onclick="createPlan()">创建</button>
       </div>
     </div>
@@ -55,8 +55,8 @@
           <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-weight:600;">${p.title}</div>
-              <div style="font-size:var(--text-xs);color:var(--text-muted);">
-                ⏱ ${p.startTime}-${p.endTime} · ${p.durationMin}分钟
+              <div style="font-size:var(--fs-xs);color:var(--text-3);">
+                 ${p.startTime}-${p.endTime} · ${p.durationMin}分钟
                 ${p.appName ? '· ' + p.appName : ''}
                 ${p.dayOfWeek >= 0 ? '· 每周' + ['日','一','二','三','四','五','六'][p.dayOfWeek] : ''}
               </div>
@@ -64,7 +64,7 @@
             <span class="badge ${p.status === 'active' ? 'badge-success' : p.status === 'paused' ? 'badge-warning' : 'badge-danger'}">${p.status === 'active' ? '进行中' : p.status === 'paused' ? '已暂停' : '已归档'}</span>
           </div>
         `).join("");
-        document.getElementById("plan-list").innerHTML = html || '<p class="empty-state"><div class="icon">📋</div><p>暂无计划</p></p>';
+        document.getElementById("plan-list").innerHTML = html || '<p class="empty-state"><div class="icon"></div><p>暂无计划</p></p>';
       } catch (e) {
         document.getElementById("plan-list").innerHTML = '<p class="empty-state">加载失败</p>';
       }
@@ -91,7 +91,7 @@
         });
         document.getElementById("plan-title").value = "";
         document.getElementById("plan-app").value = "";
-        toast("计划已创建 ✅");
+        toast("计划已创建 ");
         loadPlans();
       } catch (e) { toast("创建失败"); }
     }

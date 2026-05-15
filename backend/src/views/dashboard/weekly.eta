@@ -17,11 +17,11 @@
     <nav class="nav-pills">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill active" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
-      <a class="nav-pill" href="/dashboard/alerts">告警</a>
-      <a class="nav-pill" href="/dashboard/notify">通知</a>
-    </nav>
+      <a class="nav-pill" href="/dashboard/settings">设置</a>
+    
 
     <div id="weekly-content"><p class="empty-state">加载中...</p></div>
     <div class="toast" id="toast"></div>
@@ -36,17 +36,17 @@
         const res = await fetch(`/api/v1/dashboard/weekly?userId=${USER_ID}`);
         const { days } = await res.json();
         if (!days || days.length === 0) {
-          document.getElementById("weekly-content").innerHTML = '<div class="empty-state"><div class="icon">📊</div><p>本周暂无数据</p></div>';
+          document.getElementById("weekly-content").innerHTML = '<div class="empty-state"><div class="icon"></div><p>本周暂无数据</p></div>';
           return;
         }
         const html = days.reverse().map(d => `
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-weight:600;">${d.date} 周${DAYS[d.dayOfWeek]}</span>
-              <span style="font-weight:700;font-size:var(--text-lg);color:var(--green-600);">${d.totalMin} 分钟</span>
+              <span style="font-weight:700;font-size:var(--text-lg);color:var(--brand);">${d.totalMin} 分钟</span>
             </div>
-            <div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px;">
-              📊 ${d.totalSessions} 条记录 · ✅ ${d.matchedMin} 分钟匹配计划
+            <div style="font-size:var(--fs-xs);color:var(--text-2);margin-bottom:4px;">
+               ${d.totalSessions} 条记录 ·  ${d.matchedMin} 分钟匹配计划
             </div>
             ${d.apps && d.apps.length > 0 ? `<div style="display:flex;gap:4px;flex-wrap:wrap;">${d.apps.map(a => `<span class="tag">${a}</span>`).join("")}</div>` : ""}
           </div>
