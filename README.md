@@ -38,17 +38,17 @@
 
 <div align="center">
 
-| 今日仪表盘 | 日历拖拽排程 |
+| 养树仪表盘 (2/3 完成) | 枯萎的树 (0 完成) |
 |:--:|:--:|
-| ![dashboard](docs/screenshots/1-dashboard.png) | ![calendar](docs/screenshots/2-calendar.png) |
+| ![dashboard](docs/screenshots/1-dashboard.png) | ![dead-tree](docs/screenshots/7-dead-tree.png) |
 
-| App 权限管理 | 学习目标追踪 |
+| 日历拖拽排程 | App 权限管理 |
 |:--:|:--:|
-| ![apps](docs/screenshots/3-apps.png) | ![goals](docs/screenshots/4-goals.png) |
+| ![calendar](docs/screenshots/2-calendar.png) | ![apps](docs/screenshots/3-apps.png) |
 
 | 系统设置 | 周报统计 |
 |:--:|:--:|
-| ![settings](docs/screenshots/5-settings.png) | ![weekly](docs/screenshots/6-weekly.png) |
+| ![settings](docs/screenshots/4-settings.png) | ![weekly](docs/screenshots/6-weekly.png) |
 
 </div>
 
