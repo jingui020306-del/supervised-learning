@@ -16,10 +16,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plans         Plan[]
-  sessions      TrackingSession[]
-  alertConfigs  AlertConfig[]
-  alerts        Alert[]
+  plans             Plan[]
+  sessions          TrackingSession[]
+  alertConfigs      AlertConfig[]
+  alerts            Alert[]
+  appPermissions    AppPermission[]
 }
 
 model Plan {
@@ -109,4 +110,20 @@ model Alert {
 
   @@index([userId, createdAt])
   @@index([configId])
+}
+
+model AppPermission {
+  id        String   @id @default(cuid())
+  userId    String
+  appName   String   // 应用名称
+  bundleId  String?  // iOS bundle ID 或 Android package name
+  icon      String?  // emoji 图标
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, appName])
+  @@index([userId])
 }

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>App 管理 · 学习监督</title>
+  <link rel="stylesheet" href="/dashboard/partials/design-system.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="/dashboard">← 返回</a>
+      <h1>App 管理</h1>
+      <span></span>
+    </header>
+
+    <nav class="nav-pills">
+      <a class="nav-pill" href="/dashboard">今日</a>
+      <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/plans">计划</a>
+      <a class="nav-pill active" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/alerts">告警</a>
+      <a class="nav-pill" href="/dashboard/notify">通知</a>
+    </nav>
+
+    <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:16px;">
+      选择允许监督系统追踪的应用。仅已授权的 App 会被记录和分析。
+    </p>
+
+    <!-- Add custom app -->
+    <div class="input-group" style="margin-bottom:16px;">
+      <input class="input" type="text" id="new-app-name" placeholder="输入 App 名称...">
+      <input class="input" type="text" id="new-app-bundle" placeholder="Bundle ID (可选)" style="max-width:140px;">
+      <button class="btn btn-primary btn-sm" onclick="addApp()" style="flex-shrink:0;">+ 添加</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-size:var(--text-sm);color:var(--text-muted);">
+        已授权 <strong id="granted-count" style="color:var(--text-primary);">0</strong> / <span id="total-count">0</span>
+      </span>
+      <input class="input" type="text" id="search" placeholder="搜索..." style="width:160px;padding:6px 12px;font-size:var(--text-sm);" oninput="renderList()">
+    </div>
+
+    <div id="app-list"><p class="empty-state">加载中...</p></div>
+
+    <button class="btn btn-primary btn-full" onclick="saveAll()" id="save-btn" disabled style="margin-top:12px;">保存更改</button>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+    let apps = [];
+    let changed = new Set();
+
+    async function load() {
+      try {
+        const res = await fetch(`/api/v1/apps?userId=${USER_ID}`);
+        apps = await res.json();
+        // Filter out null placeholder entries
+        apps = apps.filter(a => a.id !== null && a.appName);
+        renderList();
+        updateCount();
+      } catch (e) {
+        document.getElementById("app-list").innerHTML = '<p class="empty-state">加载失败</p>';
+      }
+    }
+
+    function renderList() {
+      const q = (document.getElementById("search").value || "").toLowerCase();
+      const filtered = q ? apps.filter(a => a.appName.toLowerCase().includes(q)) : apps;
+      const html = filtered.map((app, i) => `
+        <div class="card ${app.enabled ? 'active' : ''}" style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+            <span style="font-size:1.5rem;">${app.icon || '📱'}</span>
+            <div style="min-width:0;">
+              <div style="font-weight:600;font-size:var(--text-base);">${app.appName}</div>
+              <div style="font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <button class="btn btn-danger btn-sm" onclick="removeApp('${app.appName}')" style="padding:4px 8px;font-size:0.65rem;">✕</button>
+            <label class="toggle">
+              <input type="checkbox" ${app.enabled ? 'checked' : ''} onchange="toggleApp('${app.appName}', this.checked)">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
+      `).join("");
+      document.getElementById("app-list").innerHTML = html || '<p class="empty-state">没有匹配的应用，添加一个吧</p>';
+    }
+
+    async function addApp() {
+      const nameInput = document.getElementById("new-app-name");
+      const bundleInput = document.getElementById("new-app-bundle");
+      const name = nameInput.value.trim();
+      if (!name) return toast("请输入应用名称");
+      try {
+        const res = await fetch(`/api/v1/apps/${encodeURIComponent(name)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: USER_ID, appName: name, bundleId: bundleInput.value.trim(), enabled: true }),
+        });
+        if (res.ok) {
+          nameInput.value = ""; bundleInput.value = "";
+          toast(`已添加 "${name}"`);
+          load();
+        }
+      } catch (e) { toast("添加失败"); }
+    }
+
+    async function removeApp(appName) {
+      if (!confirm(`确定要移除 "${appName}" 吗？`)) return;
+      try {
+        await fetch(`/api/v1/apps/${encodeURIComponent(appName)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: USER_ID, appName, enabled: false }),
+        });
+        // Hard delete from list
+        apps = apps.filter(a => a.appName !== appName);
+        changed.delete(appName);
+        renderList();
+        updateCount();
+        toast(`已移除 "${appName}"`);
+      } catch (e) { toast("操作失败"); }
+    }
+
+    function toggleApp(appName, enabled) {
+      const app = apps.find(a => a.appName === appName);
+      if (app) { app.enabled = enabled; changed.add(appName); updateCount(); document.getElementById("save-btn").disabled = false; }
+    }
+
+    function updateCount() {
+      const granted = apps.filter(a => a.enabled).length;
+      document.getElementById("granted-count").textContent = granted;
+      document.getElementById("total-count").textContent = apps.length;
+    }
+
+    function renderList() {
+      const q = (document.getElementById("search").value || "").toLowerCase();
+      const filtered = q ? apps.filter(a => a.appName.toLowerCase().includes(q)) : apps;
+      document.getElementById("app-list").innerHTML = filtered.map(app => `
+        <div class="card ${app.enabled ? 'active' : ''}" style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+            <span style="font-size:1.5rem;">${app.icon || '📱'}</span>
+            <div style="min-width:0;">
+              <div style="font-weight:600;font-size:var(--text-base);">${app.appName}</div>
+              <div style="font-size:var(--text-xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <button class="btn btn-danger btn-sm" onclick="removeApp('${app.appName}')" style="padding:4px 8px;font-size:0.65rem;">✕</button>
+            <label class="toggle">
+              <input type="checkbox" ${app.enabled ? 'checked' : ''} onchange="toggleApp('${app.appName}', this.checked)">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
+      `).join("") || '<p class="empty-state">没有匹配的应用<br>在上方输入 App 名称添加</p>';
+    }
+
+    async function saveAll() {
+      const btn = document.getElementById("save-btn");
+      btn.disabled = true; btn.textContent = "保存中...";
+      const changedPerms = apps.filter(a => changed.has(a.appName)).map(a => ({ appName: a.appName, enabled: a.enabled }));
+      try {
+        await fetch("/api/v1/apps/batch", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: USER_ID, permissions: changedPerms }),
+        });
+        changed.clear();
+        btn.textContent = "保存更改";
+        toast("已保存 ✅");
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = "网络错误，重试";
+      }
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);
+    }
+
+    load();
+  </script>
+</body>
+</html>

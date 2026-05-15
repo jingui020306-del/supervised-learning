@@ -12,6 +12,14 @@ export async function trackingRoutes(app: FastifyInstance) {
       timestamp: string;
     };
 
+    // Permission check: only track enabled apps
+    const perm = await prisma.appPermission.findUnique({
+      where: { userId_appName: { userId, appName } },
+    });
+    if (perm && !perm.enabled) {
+      return { status: "blocked", reason: `"${appName}" 未被授权追踪` };
+    }
+
     const ts = new Date(timestamp);
 
     if (action === "start") {

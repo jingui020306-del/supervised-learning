@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>计划管理 · 学习监督</title>
+  <link rel="stylesheet" href="/dashboard/partials/design-system.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="/dashboard">← 返回</a>
+      <h1>计划管理</h1>
+      <span></span>
+    </header>
+
+    <nav class="nav-pills">
+      <a class="nav-pill" href="/dashboard">今日</a>
+      <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill active" href="/dashboard/plans">计划</a>
+      <a class="nav-pill" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/alerts">告警</a>
+      <a class="nav-pill" href="/dashboard/notify">通知</a>
+    </nav>
+
+    <!-- Quick add form -->
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px;">快速创建计划</div>
+      <input class="input" type="text" id="plan-title" placeholder="计划标题..." style="margin-bottom:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input class="input" type="time" id="plan-start" value="09:00" style="font-size:var(--text-sm);">
+        <input class="input" type="time" id="plan-end" value="10:00" style="font-size:var(--text-sm);">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="input" type="number" id="plan-duration" value="60" placeholder="时长(分钟)" style="width:100px;font-size:var(--text-sm);">
+        <input class="input" type="text" id="plan-app" placeholder="关联 App (可选)" style="flex:1;font-size:var(--text-sm);">
+        <button class="btn btn-primary btn-sm" onclick="createPlan()">创建</button>
+      </div>
+    </div>
+
+    <div class="section-title">现有计划</div>
+    <div id="plan-list"><p class="empty-state">加载中...</p></div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+
+    async function loadPlans() {
+      try {
+        const res = await fetch(`/api/v1/plans?userId=${USER_ID}`);
+        const plans = await res.json();
+        const html = Array.isArray(plans) ? plans.map(p => `
+          <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-weight:600;">${p.title}</div>
+              <div style="font-size:var(--text-xs);color:var(--text-muted);">
+                ⏱ ${p.startTime}-${p.endTime} · ${p.durationMin}分钟
+                ${p.appName ? '· ' + p.appName : ''}
+                ${p.dayOfWeek >= 0 ? '· 每周' + ['日','一','二','三','四','五','六'][p.dayOfWeek] : ''}
+              </div>
+            </div>
+            <span class="badge ${p.status === 'active' ? 'badge-success' : p.status === 'paused' ? 'badge-warning' : 'badge-danger'}">${p.status === 'active' ? '进行中' : p.status === 'paused' ? '已暂停' : '已归档'}</span>
+          </div>
+        `).join("");
+        document.getElementById("plan-list").innerHTML = html || '<p class="empty-state"><div class="icon">📋</div><p>暂无计划</p></p>';
+      } catch (e) {
+        document.getElementById("plan-list").innerHTML = '<p class="empty-state">加载失败</p>';
+      }
+    }
+
+    async function createPlan() {
+      const title = document.getElementById("plan-title").value.trim();
+      const startTime = document.getElementById("plan-start").value;
+      const endTime = document.getElementById("plan-end").value;
+      const durationMin = parseInt(document.getElementById("plan-duration").value) || 60;
+      const appName = document.getElementById("plan-app").value.trim();
+      if (!title) return toast("请输入计划标题");
+
+      try {
+        await fetch("/api/v1/plans", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: USER_ID, title, startTime, endTime, durationMin,
+            appName: appName || null,
+            dayOfWeek: new Date().getDay(),
+            status: "active",
+          }),
+        });
+        document.getElementById("plan-title").value = "";
+        document.getElementById("plan-app").value = "";
+        toast("计划已创建 ✅");
+        loadPlans();
+      } catch (e) { toast("创建失败"); }
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);
+    }
+
+    loadPlans();
+  </script>
+</body>
+</html>

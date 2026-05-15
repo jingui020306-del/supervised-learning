@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>告警历史 · 学习监督</title>
+  <link rel="stylesheet" href="/dashboard/partials/design-system.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="/dashboard">← 返回</a>
+      <h1>告警历史</h1>
+      <span></span>
+    </header>
+
+    <nav class="nav-pills">
+      <a class="nav-pill" href="/dashboard">今日</a>
+      <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/plans">计划</a>
+      <a class="nav-pill" href="/dashboard/apps">App</a>
+      <a class="nav-pill active" href="/dashboard/alerts">告警</a>
+      <a class="nav-pill" href="/dashboard/notify">通知</a>
+    </nav>
+
+    <div id="alert-content"><p class="empty-state">加载中...</p></div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+    const STATUS = { sent: ["待处理","badge-warning"], acknowledged: ["已确认","badge-success"], resolved: ["已解决","badge"] };
+
+    async function load() {
+      try {
+        const res = await fetch(`/api/v1/alerts/history?userId=${USER_ID}&limit=50`);
+        const alerts = await res.json();
+        if (!Array.isArray(alerts) || alerts.length === 0) {
+          document.getElementById("alert-content").innerHTML = '<div class="empty-state"><div class="icon">🎉</div><p>暂无告警记录</p></div>';
+          return;
+        }
+        const html = alerts.map(a => {
+          const [label, cls] = STATUS[a.status] || ["未知",""];
+          const time = new Date(a.createdAt).toLocaleString("zh-CN");
+          return `
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-weight:600;">${a.planTitle}</span>
+                <span class="badge ${cls}">${label}</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:8px;">
+                计划 ${a.plannedMin} 分钟 · 实际 ${a.actualMin} 分钟 · 差额 ${a.deficitMin} 分钟 · ${time}
+              </div>
+              <div style="display:flex;gap:6px;">
+                ${a.status === "sent" ? `<button class="btn btn-primary btn-sm" onclick="ack('${a.id}')">确认收到</button>` : ""}
+                ${a.status !== "resolved" ? `<button class="btn btn-secondary btn-sm" onclick="resolve('${a.id}')">标记解决</button>` : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+        document.getElementById("alert-content").innerHTML = html;
+      } catch (e) { document.getElementById("alert-content").innerHTML = '<div class="empty-state"><p>加载失败</p></div>'; }
+    }
+
+    async function ack(id) {
+      await fetch(`/api/v1/alerts/${id}/acknowledge`, { method: "POST" });
+      load();
+      document.getElementById("toast").textContent = "已确认"; document.getElementById("toast").classList.add("show");
+      setTimeout(() => document.getElementById("toast").classList.remove("show"), 1500);
+    }
+
+    async function resolve(id) {
+      await fetch(`/api/v1/alerts/${id}/resolve`, { method: "POST" });
+      load();
+    }
+    load();
+  </script>
+</body>
+</html>

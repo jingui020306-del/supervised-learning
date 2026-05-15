@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import prisma from "../db.js";
 
 export async function viewRoutes(app: FastifyInstance) {
-  // Dashboard — today view
+  // Today dashboard (SSR)
   app.get("/", async (request, reply) => {
     const { userId } = request.query as { userId: string };
     if (!userId) {
@@ -55,30 +55,28 @@ export async function viewRoutes(app: FastifyInstance) {
     });
   });
 
-  // Weekly view — simple SSR
-  app.get("/weekly", async (request, reply) => {
-    reply.header("Content-Type", "text/html; charset=utf-8");
-    return reply.send(`<!DOCTYPE html>
-<html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>周报 · 学习监督</title></head>
-<body><h1>周报</h1><p><a href="/dashboard">← 返回</a></p></body></html>`);
+  // Weekly view — static page with JS fetch
+  app.get("/weekly", async (_request, reply) => {
+    return reply.view("dashboard/weekly.eta", {});
   });
 
-  // Plans view
-  app.get("/plans", async (request, reply) => {
-    reply.header("Content-Type", "text/html; charset=utf-8");
-    return reply.send(`<!DOCTYPE html>
-<html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>计划管理 · 学习监督</title></head>
-<body><h1>计划管理</h1><p><a href="/dashboard">← 返回</a></p></body></html>`);
+  // Plans management — static page with JS fetch
+  app.get("/plans", async (_request, reply) => {
+    return reply.view("dashboard/plans.eta", {});
   });
 
-  // Alerts view
-  app.get("/alerts", async (request, reply) => {
-    reply.header("Content-Type", "text/html; charset=utf-8");
-    return reply.send(`<!DOCTYPE html>
-<html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>告警历史 · 学习监督</title></head>
-<body><h1>告警历史</h1><p><a href="/dashboard">← 返回</a></p></body></html>`);
+  // App permissions manager
+  app.get("/apps", async (_request, reply) => {
+    return reply.view("dashboard/apps.eta", {});
+  });
+
+  // Alert history
+  app.get("/alerts", async (_request, reply) => {
+    return reply.view("dashboard/alerts.eta", {});
+  });
+
+  // Notification settings
+  app.get("/notify", async (_request, reply) => {
+    return reply.view("dashboard/notify.eta", {});
   });
 }

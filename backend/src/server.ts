@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import formbody from "@fastify/formbody";
+import fastifyStatic from "@fastify/static";
 import fastifyView from "@fastify/view";
 import { Eta } from "eta";
 import path from "node:path";
@@ -26,6 +27,13 @@ export async function buildServer() {
   await app.register(fastifyView, {
     engine: { eta },
     templates: path.join(__dirname, "views"),
+  });
+
+  // Serve static assets (CSS, JS) from views directory
+  await app.register(fastifyStatic, {
+    root: path.join(__dirname, "views"),
+    prefix: "/dashboard/partials/",
+    decorateReply: false,
   });
 
   await app.register(authPlugin);
