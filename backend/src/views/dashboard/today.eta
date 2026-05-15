@@ -55,7 +55,7 @@
     </div>
 
     <div style="text-align:center;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:var(--s-4);">
-      <% var doneCount = 0; it.plans.forEach(function(p){ if(p.progress>=90) doneCount++; }); %>
+      <% var doneCount = 0; it.plans.forEach(function(p){ if(p.progress>=75) doneCount++; }); %>
       <% if (it.plans.length > 0) { %>
         <%= doneCount %> / <%= it.plans.length %> 项完成 · 浇水 <%= doneCount %> 次<% if (doneCount > it.plans.length) { %> · 超额 <%= doneCount - it.plans.length %> 次<% } %>
       <% } else { %>
@@ -95,9 +95,9 @@
   <script>
     (function() {
       // Tree grows by COMPLETED TASKS, not minutes
-      // Each plan done (>=90%) = water once -> tree +1 level
+      // Each plan done (>=75%) = water once -> tree +1 level
       var doneCount = 0;
-      <% it.plans.forEach(function(p){ if(p.progress>=90) doneCount++; }); %>
+      <% it.plans.forEach(function(p){ if(p.progress>=75) doneCount++; }); %>
       var depth = Math.min(12, 3 + doneCount);
       // Overachievement bonus: more actual than planned
       <% if (it.summary.totalActual > it.summary.totalPlanned && it.summary.totalPlanned > 0) { %>

@@ -57,37 +57,65 @@ npm run dev
 - 静默时段自定义，夜间自动休眠省资源
 - 9 页移动端仪表盘
 
-## 安装
+## 各设备使用方法
 
-### Mac / Windows (管理端)
+### 部署后端（Mac / Windows / Linux 任选一台）
 
+电脑上启动后端服务，iPad/手机通过局域网或公网访问。
+
+**方式 A — 源码启动**
 ```bash
-# 一键启动
-cd backend && npm install && npx prisma generate && npx prisma db push
-cp ../.env.example .env
-npm run dev
-# 浏览器打开 http://localhost:3001/dashboard?userId=admin
+cd backend && npm install
+npx prisma generate && npx prisma db push
+cp ../.env.example .env   # 编辑填入 Bark Key 等
+npm run dev               # → http://localhost:3001
 ```
 
-或打包为独立 EXE：`bash scripts/release.sh`
+**方式 B — 独立 EXE（无需装 Node.js）**
+```bash
+bash scripts/release.sh   # 生成 supervised-learning-macos / -win.exe / -linux
+# 双击运行即可
+```
 
-### iPad / iPhone (学生学习端)
+**方式 C — Docker**
+```bash
+docker compose up -d      # 后端 + Super Productivity 一起启动
+```
 
-1. Safari 打开 `http://服务器IP:3001/dashboard?userId=student-1`
-2. 添加到主屏幕 → 像原生 App 一样使用
-3. 配置快捷指令自动上报 → 见 `shortcuts/README.md`
+### iPad / iPhone（学生学习端）
 
-### Android (学生学习端)
+| 步骤 | 操作 |
+|------|------|
+| 1 | Safari 打开 `http://服务器IP:3001/dashboard?userId=student-1` |
+| 2 | 点分享 → 添加到主屏幕 → 像原生 App |
+| 3 | 打开系统「快捷指令」App |
+| 4 | 自动化 → 创建个人自动化 → App → 选学习 App → 已打开 |
+| 5 | 添加动作「获取 URL 内容」→ POST `http://服务器IP:3001/api/v1/tracking/push` |
+| 6 | Body: `{"userId":"student-1","action":"start","appName":"新东方","timestamp":"当前日期"}` |
+| 7 | 再创建一个「已关闭」的自动化，action 改为 `"end"` |
+| 8 | 每个学习 App 重复步骤 4-7 |
 
-1. Chrome 打开 `http://服务器IP:3001/dashboard?userId=student-1`
-2. 添加到主屏幕
-3. 安装 Tasker，创建 App 打开/关闭触发器 POST 到后端
+安装 **Bark** App 接收推送：App Store 搜 Bark → 安装 → 复制 DeviceKey 填入 `.env`
 
-### 监督者 (手机查看)
+### Android（学生学习端）
 
-1. Safari/Chrome 打开 `http://服务器IP:3001/dashboard?userId=student-1`
-2. 查看今日进度、告警历史、周报
-3. 微信关注 Server酱 接收推送通知
+| 步骤 | 操作 |
+|------|------|
+| 1 | Chrome 打开 `http://服务器IP:3001/dashboard?userId=student-1` |
+| 2 | 添加到主屏幕 |
+| 3 | 安装 Tasker 或 Macrodroid |
+| 4 | 创建触发器：App 打开/关闭 → HTTP Request POST 到后端 |
+| 5 | Body 同上，`action` 用 `"start"` / `"end"` |
+
+### 监督者（家长手机查看）
+
+| 步骤 | 操作 |
+|------|------|
+| 1 | 手机浏览器打开 `http://服务器IP:3001/dashboard?userId=student-1` |
+| 2 | 查看今日进度、周报、告警历史 |
+| 3 | 打开 sct.ftqq.com 微信扫码 → 获取 SendKey |
+| 4 | 在推送页面填入 SendKey → 接收 15 分钟未完成通知 |
+| 5 | 或配置飞书群机器人 Webhook |
 
 ## API
 
