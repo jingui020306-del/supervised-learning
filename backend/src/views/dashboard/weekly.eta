@@ -3,8 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>周报 · 学习监督</title>
+  <title>周报 · Trackly</title>
   <link rel="stylesheet" href="/static/design-system.css">
+  <style>
+    .day-row {
+      display: flex; align-items: center; gap: var(--s-3);
+      padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--border);
+    }
+    .day-label { width: 36px; text-align: center; flex-shrink: 0; }
+    .day-label .dow { font-size: var(--fs-xs); font-weight: 600; }
+    .day-label .date { font-size: .6rem; color: var(--text-3); }
+    .day-bar-wrap { flex: 1; height: 28px; background: var(--subtle); border-radius: var(--r); overflow: hidden; }
+    .day-bar-fill { height: 100%; border-radius: var(--r); transition: width .5s var(--ease); min-width: 4px; }
+    .day-bar-fill.good { background: var(--brand); }
+    .day-bar-fill.ok { background: var(--amber); }
+    .day-bar-fill.empty { background: var(--border); }
+    .day-stat { width: 52px; text-align: right; flex-shrink: 0; }
+    .day-stat .min { font-weight: 700; font-size: var(--fs-sm); }
+    .day-stat .sess { font-size: var(--fs-xs); color: var(--text-3); }
+    .summary-row {
+      display: flex; justify-content: center; gap: var(--s-5);
+      padding: var(--s-3) var(--s-4); text-align: center;
+      background: var(--surface); border-radius: var(--r); margin: var(--s-3) var(--s-4);
+      border: 1px solid var(--border);
+    }
+    .summary-row .val { font-size: 1.15rem; font-weight: 700; }
+    .summary-row .lbl { font-size: var(--fs-xs); color: var(--text-2); }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -14,49 +39,57 @@
       <span></span>
     </header>
 
-    <nav class="nav-pills">
+    <nav class="nav-pills" style="margin:var(--s-3) var(--s-4);">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill active" href="/dashboard/weekly">周报</a>
       <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/notify">推送</a>
       <a class="nav-pill" href="/dashboard/settings">设置</a>
-    
+    </nav>
 
-    <div id="weekly-content"><p class="empty-state">加载中...</p></div>
-    <div class="toast" id="toast"></div>
+    <div class="summary-row" id="summary">
+      <div><div class="val" id="sum-total">-</div><div class="lbl">总分钟</div></div>
+      <div><div class="val" id="sum-sessions">-</div><div class="lbl">总次数</div></div>
+      <div><div class="val" id="sum-avg">-</div><div class="lbl">日均</div></div>
+    </div>
+
+    <div id="day-list"></div>
   </div>
 
   <script>
-    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
-    const DAYS = ["日","一","二","三","四","五","六"];
+    var UID = new URLSearchParams(location.search).get("userId") || "student-1";
+    var DOW = ["日","一","二","三","四","五","六"];
 
-    async function load() {
-      try {
-        const res = await fetch(`/api/v1/dashboard/weekly?userId=${USER_ID}`);
-        const { days } = await res.json();
-        if (!days || days.length === 0) {
-          document.getElementById("weekly-content").innerHTML = '<div class="empty-state"><div class="icon"></div><p>本周暂无数据</p></div>';
-          return;
-        }
-        const html = days.reverse().map(d => `
-          <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:600;">${d.date} 周${DAYS[d.dayOfWeek]}</span>
-              <span style="font-weight:700;font-size:var(--text-lg);color:var(--brand);">${d.totalMin} 分钟</span>
-            </div>
-            <div style="font-size:var(--fs-xs);color:var(--text-2);margin-bottom:4px;">
-               ${d.totalSessions} 条记录 ·  ${d.matchedMin} 分钟匹配计划
-            </div>
-            ${d.apps && d.apps.length > 0 ? `<div style="display:flex;gap:4px;flex-wrap:wrap;">${d.apps.map(a => `<span class="tag">${a}</span>`).join("")}</div>` : ""}
-          </div>
-        `).join("");
-        document.getElementById("weekly-content").innerHTML = html;
-      } catch (e) {
-        document.getElementById("weekly-content").innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
-      }
-    }
-    load();
+    fetch("/api/v1/dashboard/weekly?userId=" + UID)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var days = (data.days || []).reverse();
+        var totalMin = 0, totalSess = 0, maxMin = 1;
+        days.forEach(function(d) {
+          totalMin += d.totalMin || 0;
+          totalSess += d.totalSessions || 0;
+          if (d.totalMin > maxMin) maxMin = d.totalMin;
+        });
+
+        document.getElementById("sum-total").textContent = totalMin;
+        document.getElementById("sum-sessions").textContent = totalSess;
+        document.getElementById("sum-avg").textContent = days.length ? Math.round(totalMin / days.length) : 0;
+
+        var html = "";
+        days.forEach(function(d) {
+          var pct = maxMin > 0 ? Math.round((d.totalMin / maxMin) * 100) : 0;
+          var cls = d.totalMin >= 60 ? "good" : d.totalMin >= 20 ? "ok" : "empty";
+          html += '<div class="day-row">'
+            + '<div class="day-label"><div class="dow">周' + DOW[d.dayOfWeek] + '</div><div class="date">' + (d.date||"").slice(5) + '</div></div>'
+            + '<div class="day-bar-wrap"><div class="day-bar-fill ' + cls + '" style="width:' + Math.max(pct, 3) + '%"></div></div>'
+            + '<div class="day-stat"><div class="min">' + (d.totalMin||0) + 'm</div><div class="sess">' + (d.totalSessions||0) + '次</div></div>'
+            + '</div>';
+        });
+
+        document.getElementById("day-list").innerHTML = html || '<div class="empty-state"><p>本周暂无数据</p></div>';
+      });
   </script>
 </body>
 </html>

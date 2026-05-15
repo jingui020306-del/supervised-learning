@@ -7,6 +7,46 @@ import { parseCourseSchedule } from "../services/course-schedule.service.js";
 
 export async function excelRoutes(app: FastifyInstance) {
   /**
+   * Fetch iCal feed and return events for a date range.
+   * GET /api/v1/excel/calendar?icalUrl=...&date=2026-05-15
+   */
+  app.get("/calendar", async (request) => {
+    const { icalUrl, date } = request.query as { icalUrl?: string; date?: string };
+    if (!icalUrl) return { events: [], freeSlots: [], tip: "请提供日历 iCal 链接" };
+
+    try {
+      const events = await fetchICalFeed(icalUrl);
+      const targetDate = date ? new Date(date) : new Date();
+      const freeSlots = findFreeSlots(events, targetDate);
+
+      // Filter events that overlap with the target day
+      const dayStart = new Date(targetDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(targetDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const dayEvents = events
+        .filter((e) => e.end > dayStart && e.start < dayEnd)
+        .map((e) => ({
+          title: e.title,
+          start: e.start.toISOString(),
+          end: e.end.toISOString(),
+        }));
+
+      return {
+        events: dayEvents,
+        freeSlots: freeSlots.map((s) => ({
+          start: `${String(s.start.getHours()).padStart(2, "0")}:${String(s.start.getMinutes()).padStart(2, "0")}`,
+          end: `${String(s.end.getHours()).padStart(2, "0")}:${String(s.end.getMinutes()).padStart(2, "0")}`,
+          durationMin: s.durationMin,
+        })),
+      };
+    } catch (e: any) {
+      return { error: "无法获取日历，请检查链接是否正确", detail: e.message };
+    }
+  });
+
+  /**
    * Upload Excel file, parse tasks, auto-schedule into calendar gaps.
    *
    * Excel format expected:

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && cp -r src/views dist/views",
+    "build": "tsc && cp -r src/views dist/",
     "start": "node dist/index.js",
     "package": "npm run build && pkg dist/index.js --targets node22-macos-x64,node22-win-x64 --output dist/supervised-learning-backend",
     "db:generate": "prisma generate",
@@ -33,5 +33,11 @@
     "prisma": "^6.2.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/.prisma/client/**/*",
+      "node_modules/@prisma/client/**/*"
+    ]
   }
 }

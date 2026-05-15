@@ -14,24 +14,20 @@
       <span></span>
     </header>
 
-    <nav class="nav-pills">
+    <nav class="nav-pills" style="margin:var(--s-3) var(--s-4);">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
       <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill active" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/notify">推送</a>
       <a class="nav-pill" href="/dashboard/settings">设置</a>
-    
+    </nav>
 
-    <p style="font-size:var(--fs-sm);color:var(--text-2);margin-bottom:16px;">
-      选择允许监督系统追踪的应用。仅已授权的 App 会被记录和分析。
-    </p>
-
-    <!-- Add custom app -->
-    <div class="input-group" style="margin-bottom:16px;">
-      <input class="input" type="text" id="new-app-name" placeholder="输入 App 名称...">
-      <input class="input" type="text" id="new-app-bundle" placeholder="Bundle ID (可选)" style="max-width:140px;">
-      <button class="btn btn-primary btn-sm" onclick="addApp()" style="flex-shrink:0;">+ 添加</button>
+    <div class="section-title" style="padding:var(--s-3) var(--s-4) var(--s-1);">添加 App</div>
+    <div style="display:flex;gap:var(--s-2);padding:0 var(--s-4);margin-bottom:var(--s-4);">
+      <input class="input" type="text" id="new-app-name" placeholder="App 名称..." style="flex:1;font-size:var(--fs-sm);">
+      <button class="btn btn-primary btn-sm" onclick="addApp()">+ 添加</button>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -57,109 +53,60 @@
       try {
         const res = await fetch(`/api/v1/apps?userId=${USER_ID}`);
         apps = await res.json();
-        // Filter out null placeholder entries
-        apps = apps.filter(a => a.id !== null && a.appName);
+        apps = apps.filter(function(a) { return a.id !== null && a.appName; });
         renderList();
-        updateCount();
       } catch (e) {
-        document.getElementById("app-list").innerHTML = '<p class="empty-state">加载失败</p>';
+        document.getElementById("app-list").innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
       }
     }
 
     function renderList() {
-      const q = (document.getElementById("search").value || "").toLowerCase();
-      const filtered = q ? apps.filter(a => a.appName.toLowerCase().includes(q)) : apps;
-      const html = filtered.map((app, i) => `
-        <div class="card ${app.enabled ? 'active' : ''}" style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-            <span style="font-size:1.5rem;">${app.icon || ''}</span>
-            <div style="min-width:0;">
-              <div style="font-weight:600;font-size:var(--fs);">${app.appName}</div>
-              <div style="font-size:var(--fs-xs);color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <button class="btn btn-danger btn-sm" onclick="removeApp('${app.appName}')" style="padding:4px 8px;font-size:0.65rem;">✕</button>
-            <label class="toggle">
-              <input type="checkbox" ${app.enabled ? 'checked' : ''} onchange="toggleApp('${app.appName}', this.checked)">
-              <span class="toggle-track"></span>
-              <span class="toggle-thumb"></span>
-            </label>
-          </div>
-        </div>
-      `).join("");
-      document.getElementById("app-list").innerHTML = html || '<p class="empty-state">没有匹配的应用，添加一个吧</p>';
+      document.getElementById("app-list").innerHTML = apps.map(function(app) {
+        return '<div class="card' + (app.enabled ? ' active' : '') + '" style="display:flex;align-items:center;justify-content:space-between;">'
+          + '<div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">'
+          + '<div style="min-width:0;"><div style="font-weight:600;font-size:var(--fs);">' + app.appName + '</div>'
+          + '<div style="font-size:var(--fs-xs);color:var(--text-3);">' + (app.bundleId || '') + '</div></div></div>'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+          + '<button class="btn btn-sm" style="color:var(--red);" onclick="removeApp(\'' + app.appName + '\')">删除</button>'
+          + '<label class="toggle"><input type="checkbox"' + (app.enabled ? ' checked' : '')
+          + ' onchange="toggleApp(\'' + app.appName + '\',this.checked)">'
+          + '<span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>';
+      }).join("") || '<div class="empty-state"><p>暂无 App</p></div>';
     }
 
     async function addApp() {
-      const nameInput = document.getElementById("new-app-name");
-      const bundleInput = document.getElementById("new-app-bundle");
-      const name = nameInput.value.trim();
+      var name = document.getElementById("new-app-name").value.trim();
       if (!name) return toast("请输入应用名称");
       try {
-        const res = await fetch(`/api/v1/apps/${encodeURIComponent(name)}`, {
+        await fetch("/api/v1/apps/" + encodeURIComponent(name), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: USER_ID, appName: name, bundleId: bundleInput.value.trim(), enabled: true }),
+          body: JSON.stringify({ userId: USER_ID, appName: name, enabled: true }),
         });
-        if (res.ok) {
-          nameInput.value = ""; bundleInput.value = "";
-          toast(`已添加 "${name}"`);
-          load();
-        }
+        document.getElementById("new-app-name").value = "";
+        toast("已添加 " + name);
+        load();
       } catch (e) { toast("添加失败"); }
     }
 
     async function removeApp(appName) {
-      if (!confirm(`确定要移除 "${appName}" 吗？`)) return;
+      if (!confirm("确定移除 " + appName + "?")) return;
       try {
-        await fetch(`/api/v1/apps/${encodeURIComponent(appName)}`, {
+        await fetch("/api/v1/apps/" + encodeURIComponent(appName), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: USER_ID, appName, enabled: false }),
+          body: JSON.stringify({ userId: USER_ID, appName: appName, enabled: false }),
         });
-        // Hard delete from list
-        apps = apps.filter(a => a.appName !== appName);
+        apps = apps.filter(function(a) { return a.appName !== appName; });
         changed.delete(appName);
         renderList();
-        updateCount();
-        toast(`已移除 "${appName}"`);
+        toast("已移除 " + appName);
       } catch (e) { toast("操作失败"); }
     }
 
     function toggleApp(appName, enabled) {
-      const app = apps.find(a => a.appName === appName);
-      if (app) { app.enabled = enabled; changed.add(appName); updateCount(); document.getElementById("save-btn").disabled = false; }
-    }
-
-    function updateCount() {
-      const granted = apps.filter(a => a.enabled).length;
-      document.getElementById("granted-count").textContent = granted;
-      document.getElementById("total-count").textContent = apps.length;
-    }
-
-    function renderList() {
-      const q = (document.getElementById("search").value || "").toLowerCase();
-      const filtered = q ? apps.filter(a => a.appName.toLowerCase().includes(q)) : apps;
-      document.getElementById("app-list").innerHTML = filtered.map(app => `
-        <div class="card ${app.enabled ? 'active' : ''}" style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
-            <span style="font-size:1.5rem;">${app.icon || ''}</span>
-            <div style="min-width:0;">
-              <div style="font-weight:600;font-size:var(--fs);">${app.appName}</div>
-              <div style="font-size:var(--fs-xs);color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.bundleId || '未指定 bundle ID'}</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <button class="btn btn-danger btn-sm" onclick="removeApp('${app.appName}')" style="padding:4px 8px;font-size:0.65rem;">✕</button>
-            <label class="toggle">
-              <input type="checkbox" ${app.enabled ? 'checked' : ''} onchange="toggleApp('${app.appName}', this.checked)">
-              <span class="toggle-track"></span>
-              <span class="toggle-thumb"></span>
-            </label>
-          </div>
-        </div>
-      `).join("") || '<p class="empty-state">没有匹配的应用<br>在上方输入 App 名称添加</p>';
+      var app = apps.find(function(a) { return a.appName === appName; });
+      if (app) { app.enabled = enabled; changed.add(appName); document.getElementById("save-btn").disabled = false; }
     }
 
     async function saveAll() {

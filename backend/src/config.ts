@@ -17,6 +17,7 @@ export const config = {
 
   feishu: {
     webhookUrl: process.env.FEISHU_WEBHOOK_URL || "",
+    secret: process.env.FEISHU_SECRET || "",
   },
 
   superProductivity: {

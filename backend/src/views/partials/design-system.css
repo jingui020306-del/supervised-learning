@@ -19,8 +19,8 @@
   --border:    #e5e7eb;
   --r: 10px; --r-lg: 16px; --r-full: 999px;
   --shadow: 0 1px 3px rgba(0,0,0,0.05);
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
-  --fs-xs: .7rem; --fs-sm: .8rem; --fs: .92rem; --fs-lg: 1.1rem; --fs-xl: 1.6rem;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --fs-xs: .75rem; --fs-sm: .85rem; --fs: .95rem; --fs-lg: 1.15rem; --fs-xl: 1.4rem;
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px;
   --ease: cubic-bezier(0.16,1,0.3,1);
 }
@@ -42,8 +42,8 @@ body {
   background: rgba(250,251,252,.85); backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
 }
-.app-header h1 { font-size: var(--fs-lg); font-weight: 700; }
-.app-header a { text-decoration: none; color: var(--brand); font-size: var(--fs-sm); font-weight: 600; }
+.app-header h1 { font-size: var(--fs); font-weight: 700; letter-spacing: -.01em; }
+.app-header a { text-decoration: none; color: var(--brand); font-size: var(--fs-sm); font-weight: 500; }
 
 /* ── Nav ── */
 .nav-pills {
@@ -61,10 +61,17 @@ body {
 .nav-pill:hover { background: var(--subtle); }
 .nav-pill.active { background: var(--brand-lt); color: var(--brand); font-weight: 600; }
 
+/* ── Section ── */
+.section-title {
+  font-size: var(--fs-xs); font-weight: 600; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: var(--s-4) 0 var(--s-2); margin: 0;
+}
+
 /* ── Card ── */
 .card {
   background: var(--surface); border-radius: var(--r-lg);
-  padding: var(--s-4); margin-bottom: var(--s-2);
+  padding: var(--s-4); margin-bottom: var(--s-3);
   border: 1px solid var(--border); box-shadow: var(--shadow);
 }
 .card.active { border-color: var(--brand); }

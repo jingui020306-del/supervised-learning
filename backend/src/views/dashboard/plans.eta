@@ -3,103 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>计划管理 · 学习监督</title>
+  <title>计划 · Trackly</title>
   <link rel="stylesheet" href="/static/design-system.css">
+  <style>
+    .plan-form-row {
+      display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2);
+    }
+    .plan-form-row input { flex: 1; min-width: 0; }
+    .plan-form-row .time-col { width: 80px; flex-shrink: 0; }
+    .plan-item {
+      display: flex; align-items: center; gap: var(--s-3);
+      padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--border);
+    }
+    .plan-item .info { flex: 1; min-width: 0; }
+    .plan-item .info .title { font-weight: 600; font-size: var(--fs-sm); }
+    .plan-item .info .meta { font-size: var(--fs-xs); color: var(--text-3); }
+    .plan-item .act { flex-shrink: 0; }
+    .add-btn { margin: var(--s-2) var(--s-4); }
+  </style>
 </head>
 <body>
   <div class="app-shell">
     <header class="app-header">
       <a href="/dashboard">← 返回</a>
-      <h1>计划管理</h1>
+      <h1>计划</h1>
       <span></span>
     </header>
 
-    <nav class="nav-pills">
+    <nav class="nav-pills" style="margin:var(--s-3) var(--s-4);">
       <a class="nav-pill" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
       <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill active" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/notify">推送</a>
       <a class="nav-pill" href="/dashboard/settings">设置</a>
-    
+    </nav>
 
-    <!-- Quick add form -->
-    <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">快速创建计划</div>
-      <input class="input" type="text" id="plan-title" placeholder="计划标题..." style="margin-bottom:8px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <input class="input" type="time" id="plan-start" value="09:00" style="font-size:var(--fs-sm);">
-        <input class="input" type="time" id="plan-end" value="10:00" style="font-size:var(--fs-sm);">
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input class="input" type="number" id="plan-duration" value="60" placeholder="时长(分钟)" style="width:100px;font-size:var(--fs-sm);">
-        <input class="input" type="text" id="plan-app" placeholder="关联 App (可选)" style="flex:1;font-size:var(--fs-sm);">
-        <button class="btn btn-primary btn-sm" onclick="createPlan()">创建</button>
+    <!-- Batch create form -->
+    <div class="section-title" style="padding:var(--s-3) var(--s-4) var(--s-1);">创建计划</div>
+    <div id="form-rows" style="padding:0 var(--s-4);">
+      <div class="plan-form-row">
+        <input class="input" placeholder="计划名称" style="font-size:var(--fs-sm);">
+        <input class="input time-col" type="time" value="09:00" style="font-size:var(--fs-sm);">
+        <input class="input" type="number" value="60" placeholder="分钟" style="width:56px;font-size:var(--fs-sm);">
+        <button class="btn btn-sm" style="color:var(--text-3);visibility:hidden;">-</button>
       </div>
     </div>
+    <div class="add-btn">
+      <button class="btn btn-secondary btn-sm" onclick="addRow()">+ 添加一行</button>
+      <button class="btn btn-primary btn-sm" onclick="createAll()" style="margin-left:8px;">全部创建</button>
+    </div>
 
-    <div class="section-title">现有计划</div>
-    <div id="plan-list"><p class="empty-state">加载中...</p></div>
-
+    <div class="section-title" style="padding:var(--s-4) var(--s-4) var(--s-1);">已有计划</div>
+    <div id="plan-list"></div>
     <div class="toast" id="toast"></div>
   </div>
 
   <script>
-    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+    var UID = new URLSearchParams(location.search).get("userId") || "student-1";
 
-    async function loadPlans() {
-      try {
-        const res = await fetch(`/api/v1/plans?userId=${USER_ID}`);
-        const plans = await res.json();
-        const html = Array.isArray(plans) ? plans.map(p => `
-          <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div style="font-weight:600;">${p.title}</div>
-              <div style="font-size:var(--fs-xs);color:var(--text-3);">
-                 ${p.startTime}-${p.endTime} · ${p.durationMin}分钟
-                ${p.appName ? '· ' + p.appName : ''}
-                ${p.dayOfWeek >= 0 ? '· 每周' + ['日','一','二','三','四','五','六'][p.dayOfWeek] : ''}
-              </div>
-            </div>
-            <span class="badge ${p.status === 'active' ? 'badge-success' : p.status === 'paused' ? 'badge-warning' : 'badge-danger'}">${p.status === 'active' ? '进行中' : p.status === 'paused' ? '已暂停' : '已归档'}</span>
-          </div>
-        `).join("");
-        document.getElementById("plan-list").innerHTML = html || '<p class="empty-state"><div class="icon"></div><p>暂无计划</p></p>';
-      } catch (e) {
-        document.getElementById("plan-list").innerHTML = '<p class="empty-state">加载失败</p>';
-      }
+    function addRow() {
+      var row = document.createElement("div");
+      row.className = "plan-form-row";
+      row.innerHTML = '<input class="input" placeholder="计划名称" style="font-size:var(--fs-sm);">'
+        + '<input class="input time-col" type="time" value="09:00" style="font-size:var(--fs-sm);">'
+        + '<input class="input" type="number" value="60" placeholder="分钟" style="width:56px;font-size:var(--fs-sm);">'
+        + '<button class="btn btn-sm" style="color:var(--red);" onclick="this.parentElement.remove()">-</button>';
+      document.getElementById("form-rows").appendChild(row);
     }
 
-    async function createPlan() {
-      const title = document.getElementById("plan-title").value.trim();
-      const startTime = document.getElementById("plan-start").value;
-      const endTime = document.getElementById("plan-end").value;
-      const durationMin = parseInt(document.getElementById("plan-duration").value) || 60;
-      const appName = document.getElementById("plan-app").value.trim();
-      if (!title) return toast("请输入计划标题");
-
-      try {
-        await fetch("/api/v1/plans", {
+    function createAll() {
+      var rows = document.querySelectorAll("#form-rows .plan-form-row");
+      var created = 0, total = 0;
+      rows.forEach(function(row) {
+        var inputs = row.querySelectorAll("input");
+        var title = inputs[0].value.trim();
+        if (!title) return;
+        total++;
+        fetch("/api/v1/plans", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: USER_ID, title, startTime, endTime, durationMin,
-            appName: appName || null,
-            dayOfWeek: new Date().getDay(),
-            status: "active",
+            userId: UID, title: title,
+            startTime: inputs[1].value, endTime: "",
+            durationMin: parseInt(inputs[2].value) || 60,
+            dayOfWeek: new Date().getDay(), status: "active",
           }),
-        });
-        document.getElementById("plan-title").value = "";
-        document.getElementById("plan-app").value = "";
-        toast("计划已创建 ");
+        }).then(function() { created++; if (created >= total) finish(); })
+          .catch(function() { created++; if (created >= total) finish(); });
+      });
+      if (total === 0) return toast("请至少填一个计划名称");
+      function finish() {
+        // Clear all rows
+        rows.forEach(function(r) { r.querySelector("input").value = ""; });
+        // Keep 1 empty row, remove extras
+        var all = document.querySelectorAll("#form-rows .plan-form-row");
+        for (var i = all.length - 1; i > 0; i--) all[i].remove();
+        toast("已创建 " + created + " 个计划");
         loadPlans();
-      } catch (e) { toast("创建失败"); }
+      }
+    }
+
+    function loadPlans() {
+      fetch("/api/v1/plans?userId=" + UID)
+        .then(function(r) { return r.json(); })
+        .then(function(plans) {
+          var DOW = ["日","一","二","三","四","五","六"];
+          var html = "";
+          (plans || []).forEach(function(p) {
+            html += '<div class="plan-item">'
+              + '<div class="info"><div class="title">' + p.title + '</div>'
+              + '<div class="meta">' + (p.startTime||"--:--") + ' · ' + (p.durationMin||0) + '分钟'
+              + (p.dayOfWeek >= 0 ? ' · 周' + DOW[p.dayOfWeek] : '') + '</div></div>'
+              + '<button class="btn btn-sm" style="color:var(--red);font-size:var(--fs-xs);" onclick="delPlan(\'' + p.id + '\')">删除</button>'
+              + '</div>';
+          });
+          document.getElementById("plan-list").innerHTML = html || '<div class="empty-state"><p>暂无计划</p></div>';
+        });
+    }
+
+    function delPlan(id) {
+      fetch("/api/v1/plans/" + id, { method: "DELETE" }).then(function() { loadPlans(); });
     }
 
     function toast(msg) {
-      const t = document.getElementById("toast");
+      var t = document.getElementById("toast");
       t.textContent = msg; t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2000);
+      setTimeout(function() { t.classList.remove("show"); }, 2000);
     }
 
     loadPlans();

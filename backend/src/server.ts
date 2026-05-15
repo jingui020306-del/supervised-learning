@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./setup.js"; // Must be first: loads .env and sets DATABASE_URL
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
@@ -9,14 +9,12 @@ import fastifyStatic from "@fastify/static";
 import fastifyView from "@fastify/view";
 import { Eta } from "eta";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { authPlugin } from "./plugins/auth.js";
 import { registerRoutes } from "./routes/index.js";
 import { config } from "./config.js";
 import { startAlertChecker } from "./jobs/alert-checker.js";
 import { viewRoutes } from "./routes/view.routes.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { BASE_DIR } from "./setup.js";
 
 export async function buildServer() {
   const app = Fastify({
@@ -39,17 +37,17 @@ export async function buildServer() {
   await app.register(cookie);
   await app.register(formbody);
 
-  const eta = new Eta({ views: path.join(__dirname, "views") });
+  const eta = new Eta({ views: path.join(BASE_DIR, "views") });
   await app.register(fastifyView, {
     engine: { eta },
-    templates: path.join(__dirname, "views"),
+    templates: path.join(BASE_DIR, "views"),
   });
 
   await app.register(authPlugin);
   await registerRoutes(app);
 
   await app.register(fastifyStatic, {
-    root: path.join(__dirname, "views", "partials"),
+    root: path.join(BASE_DIR, "views", "partials"),
     prefix: "/static/",
     decorateReply: true,
   });
@@ -72,7 +70,11 @@ export async function startServer() {
   try {
     await app.listen({ port: config.port, host: config.host });
     startAlertChecker(app.log);
-    app.log.info(`Server running at http://${config.host}:${config.port}`);
+    const url = `http://localhost:${config.port}/dashboard`;
+    app.log.info(`Server running at ${url}`);
+    // Auto-open browser (macOS/Windows/Linux)
+    const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    import("node:child_process").then(({ exec }) => exec(`${cmd} ${url}`)).catch(() => {});
   } catch (err) {
     app.log.error(err);
     process.exit(1);

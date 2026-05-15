@@ -6,32 +6,51 @@
   <title>Trackly</title>
   <link rel="stylesheet" href="/static/design-system.css">
   <style>
-    #tree-wrap { position: relative; margin-bottom: var(--s-3); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); border: 1px solid var(--border); }
-    #tree-container { width: 100%; height: 130px; }
-    #tree-container canvas { display: block; width: 100%; height: 100%; }
-    #tree-overlay {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      pointer-events: none; font-size: 4rem; opacity: 0; transition: opacity .6s;
+    #tree-hero {
+      position: relative; width: 100vw; height: 55vh; min-height: 340px;
+      left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw;
+      background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+      overflow: hidden;
     }
-    #tree-overlay.show { opacity: 1; }
-    .tree-stats {
-      display: flex; justify-content: center; gap: var(--s-6);
-      text-align: center; padding: 0 0 var(--s-3); font-size: var(--fs-xs);
+    #tree-canvas { width: 100%; height: 100%; }
+    #tree-canvas canvas { display: block; width: 100%; height: 100%; }
+    #tree-stats {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 24px; z-index: 2;
     }
-    .tree-stats .alive { color: var(--brand); }
-    .tree-stats .dead  { color: var(--red); }
-    .tree-stats .num { font-size: var(--fs-xl); font-weight: 700; display: block; }
+    #tree-stats .stat {
+      text-align: center; min-width: 52px;
+      background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
+      padding: 8px 14px; border-radius: 12px;
+    }
+    #tree-stats .num { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+    #tree-stats .lbl { font-size: .7rem; color: var(--text-2); }
+    #tree-status {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      font-size: .8rem; font-weight: 600; z-index: 2;
+      background: rgba(255,255,255,.8); padding: 4px 14px; border-radius: 999px;
+    }
+    .task-list { padding: var(--s-3) var(--s-4); }
+    .task-row {
+      display: flex; align-items: center; gap: var(--s-3);
+      padding: var(--s-3) 0;
+    }
+    .task-row + .task-row { border-top: 1px solid var(--border); }
+    .task-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .task-dot.high { background: var(--brand); }
+    .task-dot.medium { background: var(--amber); }
+    .task-dot.low { background: var(--red); }
+    .task-info { flex: 1; min-width: 0; }
+    .task-info .name { font-weight: 600; font-size: var(--fs-sm); }
+    .task-info .meta { font-size: var(--fs-xs); color: var(--text-3); }
+    .task-pct { font-weight: 700; font-size: var(--fs-sm); flex-shrink: 0; }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="app-header">
-      <span style="font-size:var(--fs-xs);color:var(--text-3);"><%= it.date %></span>
-      <h1>Trackly</h1>
-      <span style="font-size:var(--fs-xs);color:var(--brand);font-weight:600;">● 在线</span>
-    </header>
+  <div class="app-shell" style="padding:0;max-width:100%;">
 
-    <nav class="nav-pills">
+    <!-- Nav at top -->
+    <nav class="nav-pills" style="margin:var(--s-3) var(--s-4);">
       <a class="nav-pill active" href="/dashboard">今日</a>
       <a class="nav-pill" href="/dashboard/weekly">周报</a>
       <a class="nav-pill" href="/dashboard/calendar">日历</a>
@@ -41,91 +60,59 @@
       <a class="nav-pill" href="/dashboard/settings">设置</a>
     </nav>
 
-    <!-- Tree with death overlay -->
-    <div id="tree-wrap">
-      <div id="tree-container"></div>
-      <div id="tree-overlay">🥀</div>
+    <!-- Tree hero -->
+    <div id="tree-hero">
+      <div id="tree-status"><%= it.date %></div>
+      <div id="tree-canvas"></div>
+      <div id="tree-stats">
+        <div class="stat"><span class="num" id="grown-count" style="color:var(--brand);">-</span><div class="lbl">养大</div></div>
+        <div class="stat"><span class="num" id="alive-count" style="color:var(--amber);">-</span><div class="lbl">成活</div></div>
+        <div class="stat"><span class="num" id="dead-count" style="color:var(--text-3);">-</span><div class="lbl">枯萎</div></div>
+      </div>
     </div>
 
-    <!-- Tree stats: 3 tiers -->
-    <div class="tree-stats">
-      <div class="alive"><span class="num" id="grown-count">-</span>养大</div>
-      <div class="alive" style="color:var(--amber);"><span class="num" id="alive-count">-</span>成活</div>
-      <div class="dead"><span class="num" id="dead-count">-</span>枯萎</div>
-    </div>
-
-    <div style="text-align:center;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:var(--s-4);">
+    <!-- Task list -->
+    <div class="task-list">
       <% var doneCount = 0; it.plans.forEach(function(p){ if(p.progress>=75) doneCount++; }); %>
       <% if (it.plans.length > 0) { %>
-        <%= doneCount %> / <%= it.plans.length %> 项完成 · 浇水 <%= doneCount %> 次<% if (doneCount > it.plans.length) { %> · 超额 <%= doneCount - it.plans.length %> 次<% } %>
+        <% it.plans.forEach(function(plan) { %>
+        <% const cls = plan.progress >= 75 ? 'high' : plan.progress >= 40 ? 'medium' : 'low'; %>
+        <div class="task-row">
+          <div class="task-dot <%= cls %>"></div>
+          <div class="task-info">
+            <div class="name"><%= plan.title %></div>
+            <div class="meta"><%= plan.startTime %>-<%= plan.endTime %><% if (plan.appName) { %> · <%= plan.appName %><% } %></div>
+          </div>
+          <div class="task-pct" style="color:var(--<%= cls === 'high' ? 'brand' : cls === 'medium' ? 'amber' : 'red' %>);"><%= plan.progress %>%</div>
+        </div>
+        <% }) %>
       <% } else { %>
-        今天还没有学习计划
+        <div style="text-align:center;padding:var(--s-5);color:var(--text-3);">
+          <div style="font-size:2rem;margin-bottom:var(--s-2);">🌱</div>
+          <div style="font-size:var(--fs-sm);">今天还没有学习计划</div>
+        </div>
       <% } %>
     </div>
 
-    <% if (it.plans.length === 0) { %>
-      <div class="empty-state">
-        <p>今天还没有学习计划</p>
-        <p style="font-size:var(--fs-xs);">上传 Excel 或在计划页面创建</p>
-      </div>
-    <% } %>
-
-    <% it.plans.forEach(function(plan) { %>
-      <% const cls = plan.progress >= 90 ? 'high' : plan.progress >= 50 ? 'medium' : 'low'; %>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-          <div>
-            <div style="font-weight:600;"><%= plan.title %></div>
-            <div style="font-size:var(--fs-xs);color:var(--text-3);"><%= plan.startTime %>-<%= plan.endTime %><% if (plan.appName) { %> · <%= plan.appName %><% } %></div>
-          </div>
-          <span style="font-weight:700;font-size:var(--fs-sm);color:var(--<%= cls === 'high' ? 'brand' : cls === 'medium' ? 'amber' : 'red' %>);"><%= plan.progress %>%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill <%= cls %>" style="width:<%= Math.min(plan.progress, 100) %>%"></div>
-        </div>
-        <div class="progress-label">
-          <span><%= plan.actualMin %> 分钟</span>
-          <span>目标 <%= plan.plannedMin %> 分钟</span>
-        </div>
-      </div>
-    <% }) %>
   </div>
 
   <script src="/static/tree.min.js"></script>
   <script>
     (function() {
-      // Tree grows by COMPLETED TASKS, not minutes
-      // Each plan done (>=75%) = water once -> tree +1 level
       var doneCount = 0;
       <% it.plans.forEach(function(p){ if(p.progress>=75) doneCount++; }); %>
       var depth = Math.min(12, 3 + doneCount);
-      // Overachievement bonus: more actual than planned
-      <% if (it.summary.totalActual > it.summary.totalPlanned && it.summary.totalPlanned > 0) { %>
-        depth = Math.min(12, depth + 1);
-      <% } %>
-      // Dead: no tasks done but plans exist -> tree withered by midnight
       var isDead = doneCount === 0 && <%= it.plans.length %> > 0;
-
-      var opts = {
-        container: document.getElementById("tree-container"),
+      new TreePlugin({
+        container: document.getElementById("tree-canvas"),
         depth: depth,
         growthSpeed: isDead ? 0 : 300,
-        treeScale: isDead ? 0.25 : 0.5,
+        treeScale: isDead ? 0.25 : 1,
         seed: <%= it.date ? it.date.replace(/-/g, '') : '20260515' %>,
-      };
-      if (isDead) {
-        opts.gradientStart = "#d4d4d4";
-        opts.gradientEnd = "#a3a3a3";
-      }
-      new TreePlugin(opts);
-
-      // Show wither overlay
-      if (isDead) {
-        document.getElementById("tree-overlay").classList.add("show");
-      }
+        gradientStart: isDead ? "#d4d4d4" : "#8B4513",
+        gradientEnd: isDead ? "#a3a3a3" : "#228B22",
+      });
     })();
-
-    // Load weekly tree stats (3 tiers)
     (function() {
       var uid = new URLSearchParams(location.search).get("userId") || "stu-1";
       fetch("/api/v1/dashboard/weekly?userId=" + uid)
@@ -134,11 +121,9 @@
           var grown = 0, alive = 0, dead = 0;
           if (data.days) {
             data.days.forEach(function(d) {
-              if (d.totalSessions < 1) return; // skip days with no activity
-              // 养大: 3+ sessions (tasks completed), 成活: 1-2, 枯萎: 0 but had plans
               if (d.totalSessions >= 3) grown++;
               else if (d.totalSessions >= 1) alive++;
-              else dead++;
+              else if (d.totalPlanned > 0) dead++;
             });
           }
           document.getElementById("grown-count").textContent = grown || "0";
@@ -146,7 +131,6 @@
           document.getElementById("dead-count").textContent = dead || "0";
         });
     })();
-
   </script>
 </body>
 </html>
