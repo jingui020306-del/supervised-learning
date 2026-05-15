@@ -40,3 +40,18 @@
 - iCal/CalDAV 日历解析：支持 iPad 日历共享链接，自动避开已有事件
 - 贪心算法将任务分配至空闲时段，返回已排程/未排程结果
 - 完整回归测试：24 项 API 全部通过 (200)
+
+### 2026-05-15 (深夜) — CPU 优化 + 目标系统 + 日历拖拽 + 静默时段
+
+- 后端 CPU 优化：@fastify/compress (gzip/brotli 压缩)、@fastify/rate-limit (100req/min 限流)
+- SQLite 单连接策略避免写锁争用，告警频率降至每5分钟
+- 静默时段用户可配置：/dashboard/settings 前端设置免打扰时间
+- Health 端点新增 uptime + heap 内存监控
+- 学习目标系统：/api/v1/goals CRUD + 进度追踪（日/周目标）
+- /dashboard/goals 目标页面，含进度条
+- 课程表 Excel 解析：POST /api/v1/excel/course-schedule (网格格式)
+- 拖拽日历排程：/dashboard/calendar 任务拖入空格自动安排
+- 追踪粒度选择：30分钟/1小时/2小时/按天
+- 系统设置页面：/dashboard/settings (静默时段+粒度)
+- 仪表盘扩展至 9 页 (新增日历/目标/设置)
+- 完整回归测试：32 项全部通过 (200)
