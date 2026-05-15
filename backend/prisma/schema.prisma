@@ -146,3 +146,13 @@ model Goal {
 
   @@index([userId, status])
 }
+
+model Setting {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  quietStart String  @default("23:00") // HH:MM
+  quietEnd   String  @default("06:00") // HH:MM
+  granularity Int    @default(60)      // minutes: 30, 60, 120
+  data       String? // JSON blob for extensible settings
+  updatedAt  DateTime @updatedAt
+}

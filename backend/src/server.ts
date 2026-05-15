@@ -3,6 +3,8 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import formbody from "@fastify/formbody";
+import compress from "@fastify/compress";
+import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import fastifyView from "@fastify/view";
 import { Eta } from "eta";
@@ -17,7 +19,21 @@ import { viewRoutes } from "./routes/view.routes.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function buildServer() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: true,
+    // Prisma SQLite connection pooling — single connection is optimal for SQLite
+    // (SQLite serializes writes anyway, multiple connections add overhead)
+  });
+
+  // Compression: gzip/brotli responses, reduces bandwidth ~70%
+  await app.register(compress, { global: true });
+
+  // Rate limiting: 100 req/min per IP, prevents CPU abuse
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: "1 minute",
+    keyGenerator: (req: any) => req.ip,
+  });
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(cookie);
@@ -30,10 +46,8 @@ export async function buildServer() {
   });
 
   await app.register(authPlugin);
-
   await registerRoutes(app);
 
-  // Serve static assets (CSS/JS) from views/partials
   await app.register(fastifyStatic, {
     root: path.join(__dirname, "views", "partials"),
     prefix: "/static/",
@@ -42,8 +56,13 @@ export async function buildServer() {
 
   await app.register(viewRoutes, { prefix: "/dashboard" });
 
-  // Health check
-  app.get("/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
+  // Health check (excluded from rate limit)
+  app.get("/health", async () => ({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage().heapUsed / 1024 / 1024,
+  }));
 
   return app;
 }

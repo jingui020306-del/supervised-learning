@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>系统设置 · 学习监督</title>
+  <link rel="stylesheet" href="/static/design-system.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="/dashboard">← 返回</a>
+      <h1>系统设置</h1>
+      <span></span>
+    </header>
+
+    <nav class="nav-pills">
+      <a class="nav-pill" href="/dashboard">今日</a>
+      <a class="nav-pill" href="/dashboard/weekly">周报</a>
+      <a class="nav-pill" href="/dashboard/calendar">日历</a>
+      <a class="nav-pill" href="/dashboard/goals">目标</a>
+      <a class="nav-pill active" href="/dashboard/settings">设置</a>
+    </nav>
+
+    <!-- Quiet hours -->
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px;">静默时段 (免打扰)</div>
+      <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:12px;">此时间段内系统不触发任何告警通知，节省资源</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:var(--text-xs);color:var(--text-muted);">开始</label>
+          <input class="input" type="time" id="quiet-start" style="font-size:var(--text-sm);">
+        </div>
+        <div>
+          <label style="font-size:var(--text-xs);color:var(--text-muted);">结束</label>
+          <input class="input" type="time" id="quiet-end" style="font-size:var(--text-sm);">
+        </div>
+      </div>
+    </div>
+
+    <!-- Granularity -->
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px;">追踪粒度</div>
+      <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:12px;">时间记录精度：越粗粒度越省资源</p>
+      <div style="display:flex;gap:6px;" id="granularity-group">
+        <button class="btn btn-secondary btn-sm gran-btn" data-gran="30">30 分钟</button>
+        <button class="btn btn-secondary btn-sm gran-btn active" data-gran="60">1 小时</button>
+        <button class="btn btn-secondary btn-sm gran-btn" data-gran="120">2 小时</button>
+        <button class="btn btn-secondary btn-sm gran-btn" data-gran="1440">按天</button>
+      </div>
+    </div>
+
+    <!-- System info -->
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px;">系统状态</div>
+      <div id="sys-info" style="font-size:var(--text-sm);color:var(--text-secondary);"></div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveSettings()" style="margin-top:16px;">保存设置</button>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
+    let granularity = 60;
+
+    document.getElementById("granularity-group").addEventListener("click", (e) => {
+      const btn = e.target.closest(".gran-btn");
+      if (!btn) return;
+      document.querySelectorAll(".gran-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      granularity = parseInt(btn.dataset.gran);
+    });
+
+    async function loadSettings() {
+      try {
+        const [res, healthRes] = await Promise.all([
+          fetch(`/api/v1/settings?userId=${USER_ID}`),
+          fetch("/health"),
+        ]);
+        const s = await res.json();
+        const health = await healthRes.json();
+
+        document.getElementById("quiet-start").value = s.quietStart || "23:00";
+        document.getElementById("quiet-end").value = s.quietEnd || "06:00";
+        granularity = s.granularity || 60;
+
+        document.querySelectorAll(".gran-btn").forEach(b => {
+          b.classList.toggle("active", parseInt(b.dataset.gran) === granularity);
+        });
+
+        document.getElementById("sys-info").innerHTML = `
+          运行时间: ${Math.round(health.uptime / 60)} 分钟<br>
+          内存占用: ${health.memory?.toFixed(1) || "?"} MB<br>
+          速率限制: 100 请求/分钟
+        `;
+      } catch (e) {
+        document.getElementById("sys-info").innerHTML = "无法获取系统状态";
+      }
+    }
+
+    async function saveSettings() {
+      const btn = document.querySelector(".btn-primary");
+      btn.disabled = true; btn.textContent = "保存中...";
+      try {
+        await fetch("/api/v1/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: USER_ID,
+            quietStart: document.getElementById("quiet-start").value,
+            quietEnd: document.getElementById("quiet-end").value,
+            granularity,
+          }),
+        });
+        toast("设置已保存 ✅");
+        btn.textContent = "保存设置";
+        btn.disabled = false;
+      } catch (e) {
+        toast("保存失败");
+        btn.disabled = false; btn.textContent = "重试";
+      }
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);
+    }
+
+    loadSettings();
+  </script>
+</body>
+</html>

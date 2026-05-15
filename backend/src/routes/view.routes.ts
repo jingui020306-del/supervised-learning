@@ -89,4 +89,9 @@ export async function viewRoutes(app: FastifyInstance) {
   app.get("/goals", async (_request, reply) => {
     return reply.view("dashboard/goals.eta", {});
   });
+
+  // Settings
+  app.get("/settings", async (_request, reply) => {
+    return reply.view("dashboard/settings.eta", {});
+  });
 }

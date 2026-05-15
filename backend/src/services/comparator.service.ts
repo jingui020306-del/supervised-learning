@@ -83,12 +83,35 @@ export async function matchSessionToPlan(sessionId: string) {
   return null;
 }
 
+// ── Default quiet hours (overridden by user settings) ──
+let quietStartH = 23;
+let quietEndH = 6;
+let quietSettingsLoaded = false;
+
+async function loadQuietSettings() {
+  try {
+    const s = await prisma.setting.findFirst();
+    if (s) {
+      quietStartH = parseInt(s.quietStart.split(":")[0], 10);
+      quietEndH = parseInt(s.quietEnd.split(":")[0], 10);
+    }
+  } catch {}
+  quietSettingsLoaded = true;
+}
+
 // ── Optimized alert check (called every 5 min) ──
 export async function runAlertCheck() {
-  // Sleep hours skip (23:00-06:00) — no alerts needed
+  if (!quietSettingsLoaded) await loadQuietSettings();
+
+  // User-configurable sleep hours — skip during quiet time
   const now = new Date();
   const hour = now.getHours();
-  if (hour >= 23 || hour < 6) return [];
+  if (quietEndH < quietStartH) {
+    // Crosses midnight: e.g. 23:00 - 06:00
+    if (hour >= quietStartH || hour < quietEndH) return [];
+  } else {
+    if (hour >= quietStartH && hour < quietEndH) return [];
+  }
 
   const plans = await getActivePlans();
   if (plans.length === 0) return [];
