@@ -3,7 +3,8 @@
 <img src="https://img.shields.io/badge/status-active-success?style=flat-square">
 <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
 <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen?style=flat-square">
-<img src="https://img.shields.io/badge/tests-32%2F32-brightgreen?style=flat-square">
+<img src="https://img.shields.io/badge/tests-14%2F14-brightgreen?style=flat-square">
+<img src="https://img.shields.io/badge/tree-growing%20tree-brightgreen?style=flat-square">
 
 </div>
 
@@ -20,7 +21,9 @@
 
 一个面向**学生和家长**的跨平台学习监督系统。
 
-学生在 iPad / iPhone / Android 上学习，系统自动追踪、比对计划、在落后时推送提醒。上传 Excel 课程表即可自动排程，支持日历拖拽、目标管理。
+学生在 iPad / iPhone / Android 上学习，系统自动追踪、比对计划、在落后时推送提醒。上传 Excel 课程表即可自动排程，支持日历拖拽。
+
+**学习越久，树越大。** 仪表盘上一棵 Canvas 实时生长的树 —— 进度 0% 是幼苗，100% 是参天大树。没完成？树会枯萎。趣味化学习激励。
 
 ### 平台支持
 
@@ -51,11 +54,10 @@
 
 ### 丝滑交互
 
+- **养树激励** — Canvas 实时生长的树，学习进度=树的深度
 - **拖拽排程** — 日历页直接拖任务到空格，即时安排
-- **滑动切换** — 9 个仪表盘页面横向导航，流畅切换
 - **一键开关** — App 权限 toggle 即时生效
-- **实时进度** — 渐变进度条动画，完成度一目了然
-- **下拉刷新** — 所有数据页面自动刷新
+- **自动刷新** — 数据每 30 秒自动更新
 
 ## 快速开始
 

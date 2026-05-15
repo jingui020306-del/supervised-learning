@@ -3,8 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Trackly · 仪表盘</title>
+  <title>Trackly</title>
   <link rel="stylesheet" href="/static/design-system.css">
+  <style>
+    #tree-wrap { position: relative; margin-bottom: var(--s-3); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); border: 1px solid var(--border); }
+    #tree-container { width: 100%; height: 130px; }
+    #tree-container canvas { display: block; width: 100%; height: 100%; }
+    #tree-overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      pointer-events: none; font-size: 4rem; opacity: 0; transition: opacity .6s;
+    }
+    #tree-overlay.show { opacity: 1; }
+    .tree-stats {
+      display: flex; justify-content: center; gap: var(--s-6);
+      text-align: center; padding: 0 0 var(--s-3); font-size: var(--fs-xs);
+    }
+    .tree-stats .alive { color: var(--brand); }
+    .tree-stats .dead  { color: var(--red); }
+    .tree-stats .num { font-size: var(--fs-xl); font-weight: 700; display: block; }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -23,21 +40,24 @@
       <a class="nav-pill" href="/dashboard/settings">设置</a>
     </nav>
 
-    <!-- Goal + Summary (replaces heavy stat grid) -->
-    <div class="goal-bar">
-      <% const pct = it.summary.completionRate; %>
-      <div class="goal-ring" style="background: conic-gradient(var(--brand) <%= pct %>%, var(--subtle) <%= pct %>%);">
-        <span style="background:var(--surface);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);"><%= pct %>%</span>
-      </div>
-      <div class="goal-info">
-        <div class="title"><%= it.summary.totalActual %> / <%= it.summary.totalPlanned %> 分钟</div>
-        <div class="sub">今日目标 · <%= it.plans.length %><% if (it.plans.length === 0) { %> 项计划<% } else { %><% const done = it.plans.filter(function(p){return p.progress>=90}).length; %> 项计划 · <%= done %> 已完成<% } %></div>
-      </div>
+    <!-- Tree with death overlay -->
+    <div id="tree-wrap">
+      <div id="tree-container"></div>
+      <div id="tree-overlay">🥀</div>
+    </div>
+
+    <!-- Tree stats: alive vs dead this week -->
+    <div class="tree-stats">
+      <div class="alive"><span class="num" id="alive-count">-</span>成活</div>
+      <div class="dead"><span class="num" id="dead-count">-</span>枯萎</div>
+    </div>
+
+    <div style="text-align:center;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:var(--s-4);">
+      <%= it.summary.totalActual %> / <%= it.summary.totalPlanned %> 分钟 · <%= it.plans.length %> 项计划
     </div>
 
     <% if (it.plans.length === 0) { %>
       <div class="empty-state">
-        <div class="icon">—</div>
         <p>今天还没有学习计划</p>
         <p style="font-size:var(--fs-xs);">上传 Excel 或在计划页面创建</p>
       </div>
@@ -63,7 +83,56 @@
       </div>
     <% }) %>
   </div>
-  <div class="toast" id="toast"></div>
-  <script>setInterval(function(){location.reload()},30000);</script>
+
+  <script src="/static/tree.min.js"></script>
+  <script>
+    (function() {
+      var pct = <%= it.summary.completionRate %>;
+      // Map: 0%→depth3(seedling), 50%→depth7(half), 100%→depth12(full)
+      var depth = pct === 0 ? 3 : Math.max(3, Math.round(pct / 100 * 9 + 3));
+      // Dead tree: below 50% completion after plans exist
+      var isDead = <%= it.summary.totalPlanned %> > 0 && pct < 50;
+
+      var opts = {
+        container: document.getElementById("tree-container"),
+        depth: depth,
+        growthSpeed: 40,
+        treeScale: 0.5,
+        seed: <%= it.date ? it.date.replace(/-/g, '') : '20260515' %>,
+      };
+      if (isDead) {
+        opts.growthSpeed = 0;
+        opts.treeScale = 0.25;
+        opts.gradientStart = "#d4d4d4";
+        opts.gradientEnd = "#a3a3a3";
+      }
+      new TreePlugin(opts);
+
+      // Show wither overlay
+      if (isDead) {
+        document.getElementById("tree-overlay").classList.add("show");
+      }
+    })();
+
+    // Load weekly tree stats
+    (function() {
+      var uid = new URLSearchParams(location.search).get("userId") || "stu-1";
+      fetch("/api/v1/dashboard/weekly?userId=" + uid)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var alive = 0, dead = 0;
+          if (data.days) {
+            data.days.forEach(function(d) {
+              if (d.totalSessions > 0 || d.totalMin > 0) { // had plans
+                if (d.totalMin >= 30) alive++; // threshold: 30min = alive
+                else dead++;
+              }
+            });
+          }
+          document.getElementById("alive-count").textContent = alive || "0";
+          document.getElementById("dead-count").textContent = dead || "0";
+        });
+    })();
+  </script>
 </body>
 </html>
