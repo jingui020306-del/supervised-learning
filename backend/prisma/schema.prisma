@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  role      String   // "student" | "supervisor"
+  deviceId  String?
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plans         Plan[]
+  sessions      TrackingSession[]
+  alertConfigs  AlertConfig[]
+  alerts        Alert[]
+}
+
+model Plan {
+  id        String   @id @default(cuid())
+  userId    String
+  spTaskId  String?  // Super Productivity 任务 ID
+  title     String
+  appName   String?  // 学习 App 名称,用于匹配追踪数据
+  startTime String   // HH:MM 格式
+  endTime   String   // HH:MM 格式
+  durationMin Int    // 计划时长(分钟)
+  dayOfWeek  Int     @default(-1) // 0=周日..6=周六, -1=指定日期
+  specificDate String? // YYYY-MM-DD, dayOfWeek为-1时使用
+  isRecurring Boolean @default(false)
+  status     String   @default("active") // active|paused|archived
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id])
+  sessions     TrackingSession[]
+  alertConfigs AlertConfig[]
+  alerts       Alert[]
+
+  @@index([userId])
+  @@index([dayOfWeek])
+}
+
+model TrackingSession {
+  id         String   @id @default(cuid())
+  userId     String
+  planId     String?  // 匹配到的计划
+  source     String   // ipad_shortcut | activitywatch | manual_student | manual_supervisor
+  appName    String   // 应用名
+  startTime  DateTime
+  endTime    DateTime?
+  durationSec Int?
+  rawData    String?  // JSON
+  matched    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  plan Plan? @relation(fields: [planId], references: [id])
+
+  @@index([userId, startTime])
+  @@index([planId])
+}
+
+model AlertConfig {
+  id                String   @id @default(cuid())
+  planId            String
+  userId            String
+  checkTime         String   // HH:MM 检查时间
+  thresholdMin      Int      // 低于此值(分钟)触发告警
+  notifyStudent     Boolean  @default(true)
+  notifySupervisor  Boolean  @default(true)
+  supervisorChannel String   @default("wechat") // wechat | feishu
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  plan   Plan   @relation(fields: [planId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  alerts Alert[]
+
+  @@index([planId])
+  @@index([userId])
+}
+
+model Alert {
+  id          String    @id @default(cuid())
+  configId    String
+  userId      String
+  planId      String?
+  planTitle   String    // 触发时的计划标题
+  checkTime   String    // 检查时间
+  plannedMin  Int       // 计划时长
+  actualMin   Int       // 实际时长
+  deficitMin  Int       // 差额
+  status      String    @default("sent") // sent|acknowledged|resolved
+  acknowledgedAt DateTime?
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  config AlertConfig @relation(fields: [configId], references: [id])
+  user   User        @relation(fields: [userId], references: [id])
+  plan   Plan?       @relation(fields: [planId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([configId])
+}

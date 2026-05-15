@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  supervision-backend:
+    build: ./backend
+    container_name: supervision-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - HOST=0.0.0.0
+      - DATABASE_URL=file:/app/data/supervised-learning.db
+      - API_TOKEN=${API_TOKEN:-dev-token-change-me}
+      - BARK_DEVICE_KEY=${BARK_DEVICE_KEY:-}
+      - SERVERCHAN_SEND_KEY=${SERVERCHAN_SEND_KEY:-}
+      - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL:-}
+      - SP_URL=http://super-productivity:80
+      - AW_BASE_URL=${AW_BASE_URL:-http://localhost:5600}
+      - AW_ENABLED=${AW_ENABLED:-false}
+    volumes:
+      - backend-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  super-productivity:
+    image: johannesjo/super-productivity:latest
+    container_name: super-productivity
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  backend-data:

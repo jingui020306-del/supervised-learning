@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>学习监督 · 仪表盘</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
+  <style>
+    :root {
+      --primary: oklch(62% 0.21 250);
+      --danger: oklch(55% 0.22 25);
+      --warning: oklch(70% 0.18 85);
+      --success: oklch(55% 0.18 150);
+      --surface: oklch(98% 0 0);
+      --text: oklch(18% 0 0);
+      --radius: 12px;
+      --shadow: 0 2px 12px oklch(0 0 0 / 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif; background: oklch(96% 0 0); color: var(--text); padding: 16px; max-width: 600px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; margin-bottom: 16px; }
+    h1 { font-size: 1.5rem; font-weight: 700; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    nav a {
+      padding: 8px 16px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: white;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      transition: all 0.2s;
+    }
+    nav a.active, nav a:hover { background: var(--primary); color: white; }
+    .summary-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    .summary-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .summary-card .label { font-size: 0.75rem; color: oklch(50% 0 0); margin-bottom: 4px; }
+    .summary-card .value { font-size: 1.5rem; font-weight: 700; }
+    .summary-card .value.good { color: var(--success); }
+    .summary-card .value.warn { color: var(--warning); }
+    .summary-card .value.bad { color: var(--danger); }
+    .plan-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--primary);
+    }
+    .plan-card.incomplete { border-left-color: var(--danger); }
+    .plan-card .title { font-weight: 600; margin-bottom: 8px; }
+    .plan-card .meta { font-size: 0.8rem; color: oklch(50% 0 0); margin-bottom: 8px; }
+    .progress-bar-container { background: oklch(90% 0 0); border-radius: 6px; height: 8px; margin: 8px 0; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 6px; transition: width 0.3s ease; background: var(--primary); }
+    .progress-bar.low { background: var(--danger); }
+    .progress-bar.medium { background: var(--warning); }
+    .progress-bar.high { background: var(--success); }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.8rem; }
+    .table-wrap { overflow-x: auto; background: white; border-radius: var(--radius); box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid oklch(90% 0 0); }
+    th { font-weight: 600; background: oklch(97% 0 0); position: sticky; top: 0; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-success { background: oklch(90% 0.06 150); color: oklch(40% 0.12 150); }
+    .badge-warning { background: oklch(90% 0.06 85); color: oklch(45% 0.14 85); }
+    .badge-danger { background: oklch(90% 0.06 25); color: oklch(45% 0.16 25); }
+    .btn {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+    .empty { text-align: center; padding: 40px 20px; color: oklch(50% 0 0); }
+    footer { text-align: center; padding: 24px; font-size: 0.75rem; color: oklch(50% 0 0); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>学习监督</h1>
+    <span style="font-size: 0.85rem; color: oklch(50% 0 0);"><%= it.date %></span>
+  </header>
+  <nav>
+    <a href="/dashboard" class="active">今日</a>
+    <a href="/dashboard/weekly">周报</a>
+    <a href="/dashboard/plans">计划</a>
+    <a href="/dashboard/alerts">告警</a>
+  </nav>
+
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="label">计划学习</div>
+      <div class="value"><%= it.summary.totalPlanned %>分钟</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">实际学习</div>
+      <div class="value <%= it.summary.completionRate >= 90 ? 'good' : it.summary.completionRate >= 60 ? 'warn' : 'bad' %>"><%= it.summary.totalActual %>分钟</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">完成率</div>
+      <div class="value <%= it.summary.completionRate >= 90 ? 'good' : it.summary.completionRate >= 60 ? 'warn' : 'bad' %>"><%= it.summary.completionRate %>%</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">学习计划数</div>
+      <div class="value"><%= it.plans.length %></div>
+    </div>
+  </div>
+
+  <% if (it.plans.length === 0) { %>
+    <div class="empty">
+      <p style="font-size: 1.2rem; margin-bottom: 8px;">📋</p>
+      <p>今天还没有学习计划</p>
+      <p style="font-size: 0.8rem; margin-top: 4px;">去创建计划或在 Super Productivity 中添加任务</p>
+    </div>
+  <% } %>
+
+  <% it.plans.forEach(function(plan) { %>
+    <div class="plan-card <%= plan.progress < 50 ? 'incomplete' : '' %>">
+      <div class="title"><%= plan.title %></div>
+      <div class="meta">
+        <%= plan.startTime %> - <%= plan.endTime %> · <%= plan.appName || '未指定应用' %>
+      </div>
+      <% const colorClass = plan.progress >= 90 ? 'high' : plan.progress >= 50 ? 'medium' : 'low'; %>
+      <div class="progress-bar-container">
+        <div class="progress-bar <%= colorClass %>" style="width: <%= Math.min(plan.progress, 100) %>%"></div>
+      </div>
+      <div class="progress-label">
+        <span>已完成: <%= plan.actualMin %>分钟</span>
+        <span>目标: <%= plan.plannedMin %>分钟 (<%= plan.progress %>%)</span>
+      </div>
+    </div>
+  <% }) %>
+
+  <footer>
+    Supervised Learning · 数据实时更新
+  </footer>
+</body>
+</html>
