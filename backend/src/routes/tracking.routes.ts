@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import prisma from "../db.js";
 import { matchSessionToPlan } from "../services/comparator.service.js";
+import { ensureUser } from "../services/user.service.js";
 
 export async function trackingRoutes(app: FastifyInstance) {
   // iPad Shortcuts: push tracking event
@@ -11,6 +12,8 @@ export async function trackingRoutes(app: FastifyInstance) {
       appName: string;
       timestamp: string;
     };
+
+    await ensureUser(userId);
 
     // Permission check: only track enabled apps
     const perm = await prisma.appPermission.findUnique({

@@ -122,7 +122,7 @@ export async function runAlertCheck() {
       if (!alreadyReminded) {
         const alert = await prisma.alert.create({
           data: {
-            configId: plan.alertConfigs[0]?.id || "auto",
+            configId: plan.alertConfigs[0]?.id || null,
             userId: plan.userId,
             planId: plan.id,
             planTitle: plan.title,
@@ -175,7 +175,7 @@ export async function runAlertCheck() {
           const cfg = plan.alertConfigs[0];
           const alert = await prisma.alert.create({
             data: {
-              configId: cfg?.id || "auto",
+              configId: cfg?.id || null,
               userId: plan.userId,
               planId: plan.id,
               planTitle: plan.title,
@@ -217,7 +217,7 @@ export async function runAlertCheck() {
           const deficitMin = plannedMin - Math.round(actualMin);
           const alert = await prisma.alert.create({
             data: {
-              configId: cfg?.id || "auto",
+              configId: cfg?.id || null,
               userId: plan.userId,
               planId: plan.id,
               planTitle: plan.title,

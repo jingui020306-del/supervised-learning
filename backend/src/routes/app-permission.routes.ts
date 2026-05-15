@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import prisma from "../db.js";
+import { ensureUser } from "../services/user.service.js";
 
 /** Default learning apps with Chinese names */
 const DEFAULT_APPS = [
@@ -50,6 +51,7 @@ export async function appPermissionRoutes(app: FastifyInstance) {
   app.put("/:appName", async (request) => {
     const { appName } = request.params as { appName: string };
     const { userId, enabled, bundleId } = request.body as any;
+    await ensureUser(userId);
 
     const existing = await prisma.appPermission.findUnique({
       where: { userId_appName: { userId, appName } },
@@ -80,6 +82,7 @@ export async function appPermissionRoutes(app: FastifyInstance) {
       userId: string;
       permissions: Array<{ appName: string; enabled: boolean }>;
     };
+    await ensureUser(userId);
 
     const results = [];
     for (const perm of permissions) {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>计划管理 · 学习监督</title>
-  <link rel="stylesheet" href="/dashboard/partials/design-system.css">
+  <link rel="stylesheet" href="/static/design-system.css">
 </head>
 <body>
   <div class="app-shell">

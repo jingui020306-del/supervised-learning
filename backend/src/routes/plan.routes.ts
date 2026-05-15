@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import prisma from "../db.js";
+import { ensureUser } from "../services/user.service.js";
 
 export async function planRoutes(app: FastifyInstance) {
   app.get("/", async (request) => {
@@ -13,9 +14,10 @@ export async function planRoutes(app: FastifyInstance) {
     return prisma.plan.findUnique({ where: { id }, include: { sessions: true, alertConfigs: true } });
   });
 
-  // Create plan — auto-create default alert config
+  // Create plan — auto-create user + default alert config
   app.post("/", async (request) => {
     const body = request.body as any;
+    await ensureUser(body.userId);
     const plan = await prisma.plan.create({ data: body });
 
     // Auto-create default alert config

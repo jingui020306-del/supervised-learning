@@ -91,7 +91,7 @@ model AlertConfig {
 
 model Alert {
   id          String    @id @default(cuid())
-  configId    String
+  configId    String?
   userId      String
   planId      String?
   planTitle   String    // 触发时的计划标题
@@ -104,7 +104,7 @@ model Alert {
   resolvedAt  DateTime?
   createdAt   DateTime  @default(now())
 
-  config AlertConfig @relation(fields: [configId], references: [id])
+  config AlertConfig? @relation(fields: [configId], references: [id])
   user   User        @relation(fields: [userId], references: [id])
   plan   Plan?       @relation(fields: [planId], references: [id])
 

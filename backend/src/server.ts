@@ -29,16 +29,17 @@ export async function buildServer() {
     templates: path.join(__dirname, "views"),
   });
 
-  // Serve static assets (CSS, JS) from views directory
-  await app.register(fastifyStatic, {
-    root: path.join(__dirname, "views"),
-    prefix: "/dashboard/partials/",
-    decorateReply: false,
-  });
-
   await app.register(authPlugin);
 
   await registerRoutes(app);
+
+  // Serve static assets (CSS/JS) from views/partials
+  await app.register(fastifyStatic, {
+    root: path.join(__dirname, "views", "partials"),
+    prefix: "/static/",
+    decorateReply: true,
+  });
+
   await app.register(viewRoutes, { prefix: "/dashboard" });
 
   // Health check

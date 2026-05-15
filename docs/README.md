@@ -29,3 +29,14 @@
 - 联系人管理：添加多个通知接收人
 - 6 个仪表盘页面：今日/周报/计划/App 权限/告警/通知设置
 - 一键打包脚本 `scripts/release.sh` 生成跨平台可执行文件 (macOS/Windows/Linux)
+
+### 2026-05-15 (晚间) — 运行时修复 + Excel/日历联动 + 回归测试
+
+- 修复外键约束错误：Plan/TrackingSession/AppPermission 创建时自动 seed User
+- Alert 表 configId 改为可选，支持无配置的自动告警
+- 修复静态文件 404：CSS 改为 /static/ 路径服务
+- Excel 上传 API：POST /api/v1/excel/upload 解析 .xlsx 提取任务
+- Excel + 日历自动排程：POST /api/v1/excel/auto-schedule 读取 iPad 日历空闲时段自动安排任务
+- iCal/CalDAV 日历解析：支持 iPad 日历共享链接，自动避开已有事件
+- 贪心算法将任务分配至空闲时段，返回已排程/未排程结果
+- 完整回归测试：24 项 API 全部通过 (200)
