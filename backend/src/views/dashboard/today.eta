@@ -146,10 +146,6 @@
         });
     })();
 
-    // Auto-refresh at midnight
-    var now = new Date();
-    var msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
-    setTimeout(function() { location.reload(); }, msToMidnight + 1000);
   </script>
 </body>
 </html>
