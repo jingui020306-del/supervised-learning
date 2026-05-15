@@ -3,14 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>通知设置 · 学习监督</title>
+  <title>监督推送 · Trackly</title>
   <link rel="stylesheet" href="/static/design-system.css">
+  <style>
+    .push-card { border-left: 3px solid var(--brand); }
+    .push-card.feishu { border-left-color: #3b82f6; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+    .toggle-row + .toggle-row { border-top: 1px solid var(--border); }
+  </style>
 </head>
 <body>
   <div class="app-shell">
     <header class="app-header">
       <a href="/dashboard">← 返回</a>
-      <h1>通知设置</h1>
+      <h1>监督推送</h1>
       <span></span>
     </header>
 
@@ -21,166 +27,96 @@
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
       <a class="nav-pill" href="/dashboard/settings">设置</a>
-    
+    </nav>
 
-    <!-- Reminder template -->
-    <div class="section-title">提醒消息模板</div>
+    <!-- 15-min supervisor push -->
+    <div class="card push-card">
+      <div style="font-weight:600;margin-bottom:4px;">15 分钟监督推送</div>
+      <div style="font-size:var(--fs-xs);color:var(--text-3);margin-bottom:12px;">
+        计划结束后 15 分钟仍未完成 → 自动推送通知给监督者
+      </div>
 
+      <div class="toggle-row">
+        <span style="font-size:var(--fs-sm);">微信推送 (Server酱)</span>
+        <label class="toggle">
+          <input type="checkbox" id="ch-wechat" checked onchange="save()">
+          <span class="toggle-track"></span><span class="toggle-thumb"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span style="font-size:var(--fs-sm);">飞书机器人</span>
+        <label class="toggle">
+          <input type="checkbox" id="ch-feishu" onchange="save()">
+          <span class="toggle-track"></span><span class="toggle-thumb"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Push message template -->
     <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">进度落后提醒（学生端）</div>
-      <textarea class="textarea" id="tpl-student-behind" onchange="markChanged()">
- {planTitle} 进度落后
-当前完成 {progress}%，还差 {deficit} 分钟
-打开 App 继续学习吧！</textarea>
+      <div style="font-weight:600;margin-bottom:8px;">推送消息内容</div>
+      <textarea class="textarea" id="push-msg" onchange="save()">{student} 的学习任务「{planTitle}」未完成
+计划 {planned} 分钟，实际完成 {actual} 分钟 ({progress}%)
+—— Trackly 监督系统</textarea>
       <div style="font-size:var(--fs-xs);color:var(--text-3);margin-top:4px;">
-        可用变量：<code>{planTitle}</code> <code>{progress}</code> <code>{deficit}</code> <code>{planned}</code> <code>{actual}</code>
+        变量: <code>{student}</code> <code>{planTitle}</code> <code>{planned}</code> <code>{actual}</code> <code>{progress}</code> <code>{time}</code>
+      </div>
+    </div>
+
+    <!-- WeChat share hint -->
+    <div class="card" style="border-left:3px solid #f59e0b;">
+      <div style="font-weight:600;margin-bottom:4px;">分享到微信</div>
+      <div style="font-size:var(--fs-xs);color:var(--text-2);">
+        收到推送后，可在微信中长按消息 → 转发给联系人，或截图分享到朋友圈。<br>
+        微信接口限制，朋友圈暂不支持 API 直发。
       </div>
     </div>
 
     <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">进度落后提醒（监督者端）</div>
-      <textarea class="textarea" id="tpl-supervisor-behind" onchange="markChanged()">
- 学习监督提醒
-{planTitle} 进度落后，当前完成 {progress}%
-计划 {planned} 分钟，实际 {actual} 分钟，差额 {deficit} 分钟</textarea>
-    </div>
-
-    <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">任务未完成提醒</div>
-      <textarea class="textarea" id="tpl-incomplete" onchange="markChanged()">
- {planTitle} 未完成！
-计划时间已过，仅完成 {progress}%
-计划 {planned} 分钟，实际 {actual} 分钟</textarea>
-    </div>
-
-    <!-- Notification recipients -->
-    <div class="section-title">通知接收人</div>
-    <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">监督者通知渠道</div>
-      <div class="tag-row" id="channel-tags">
-        <span class="tag selected" data-channel="wechat" onclick="toggleChannel('wechat')"> 微信</span>
-        <span class="tag" data-channel="feishu" onclick="toggleChannel('feishu')"> 飞书</span>
+      <div style="font-weight:600;margin-bottom:8px;">监督者 Server酱 Key</div>
+      <input class="input" id="serverchan-key" placeholder="SCT123456..." onchange="save()" style="font-size:var(--fs-sm);">
+      <div style="font-size:var(--fs-xs);color:var(--text-3);margin-top:4px;">
+        获取 Key: <a href="https://sct.ftqq.com/" target="_blank">sct.ftqq.com</a>
       </div>
     </div>
 
     <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">添加联系人</div>
-      <div class="input-group" style="margin-bottom:8px;">
-        <input class="input" type="text" id="new-contact-name" placeholder="联系人名称...">
-        <input class="input" type="text" id="new-contact-phone" placeholder="手机号 (可选)">
-        <button class="btn btn-primary btn-sm" onclick="addContact()" style="flex-shrink:0;">+</button>
+      <div style="font-weight:600;margin-bottom:8px;">飞书 Webhook 地址</div>
+      <input class="input" id="feishu-url" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..." onchange="save()" style="font-size:var(--fs-sm);">
+      <div style="font-size:var(--fs-xs);color:var(--text-3);margin-top:4px;">
+        飞书群 → 设置 → 群机器人 → 添加 → 复制 Webhook
       </div>
-      <div id="contact-list" style="font-size:var(--fs-sm);color:var(--text-3);">加载中...</div>
     </div>
 
-    <button class="btn btn-primary btn-full" onclick="saveAll()" id="save-btn" style="margin-top:16px;">保存设置</button>
     <div class="toast" id="toast"></div>
   </div>
 
   <script>
-    const USER_ID = new URLSearchParams(location.search).get("userId") || "student-1";
-    let contacts = JSON.parse(localStorage.getItem("sl_contacts") || "[]");
-    let templates = JSON.parse(localStorage.getItem("sl_templates") || "{}");
-    let channels = JSON.parse(localStorage.getItem("sl_channels") || '["wechat"]');
-    let dirty = false;
+    var KEY = "sl_notify_cfg";
+    var cfg = JSON.parse(localStorage.getItem(KEY) || "{}");
 
-    function init() {
-      // Load templates
-      const tpls = {
-        "tpl-student-behind": templates["student-behind"] || "",
-        "tpl-supervisor-behind": templates["supervisor-behind"] || "",
-        "tpl-incomplete": templates["incomplete"] || "",
-      };
-      for (const [id, val] of Object.entries(tpls)) {
-        if (val) document.getElementById(id).value = val;
-      }
-      // Load channels
-      document.querySelectorAll("#channel-tags .tag").forEach(t => {
-        t.classList.toggle("selected", channels.includes(t.dataset.channel));
-      });
-      renderContacts();
+    function load() {
+      document.getElementById("ch-wechat").checked = cfg.wechat !== false;
+      document.getElementById("ch-feishu").checked = cfg.feishu === true;
+      document.getElementById("push-msg").value = cfg.msg || document.getElementById("push-msg").textContent;
+      document.getElementById("serverchan-key").value = cfg.serverchan || "";
+      document.getElementById("feishu-url").value = cfg.feishuUrl || "";
     }
 
-    function toggleChannel(ch) {
-      if (channels.includes(ch)) channels = channels.filter(c => c !== ch);
-      else channels.push(ch);
-      localStorage.setItem("sl_channels", JSON.stringify(channels));
-      document.querySelectorAll("#channel-tags .tag").forEach(t => {
-        t.classList.toggle("selected", channels.includes(t.dataset.channel));
-      });
-      dirty = true;
+    function save() {
+      cfg.wechat = document.getElementById("ch-wechat").checked;
+      cfg.feishu = document.getElementById("ch-feishu").checked;
+      cfg.msg = document.getElementById("push-msg").value;
+      cfg.serverchan = document.getElementById("serverchan-key").value;
+      cfg.feishuUrl = document.getElementById("feishu-url").value;
+      localStorage.setItem(KEY, JSON.stringify(cfg));
+      var t = document.getElementById("toast");
+      t.textContent = "已保存"; t.classList.add("show");
+      setTimeout(function() { t.classList.remove("show"); }, 1500);
     }
 
-    function addContact() {
-      const name = document.getElementById("new-contact-name").value.trim();
-      const phone = document.getElementById("new-contact-phone").value.trim();
-      if (!name) return toast("请输入联系人名称");
-      contacts.push({ name, phone: phone || "", id: Date.now().toString() });
-      localStorage.setItem("sl_contacts", JSON.stringify(contacts));
-      document.getElementById("new-contact-name").value = "";
-      document.getElementById("new-contact-phone").value = "";
-      renderContacts();
-      toast(`已添加联系人 "${name}"`);
-      dirty = true;
-    }
-
-    function removeContact(id) {
-      contacts = contacts.filter(c => c.id !== id);
-      localStorage.setItem("sl_contacts", JSON.stringify(contacts));
-      renderContacts();
-      dirty = true;
-    }
-
-    function renderContacts() {
-      const html = contacts.map(c => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
-          <div>
-            <span style="font-weight:500;">${c.name}</span>
-            ${c.phone ? `<span style="color:var(--text-3);margin-left:8px;">${c.phone}</span>` : ""}
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="removeContact('${c.id}')" style="padding:2px 8px;">✕</button>
-        </div>
-      `).join("");
-      document.getElementById("contact-list").innerHTML = html || "尚未添加联系人";
-    }
-
-    function markChanged() { dirty = true; }
-
-    async function saveAll() {
-      // Save templates
-      templates["student-behind"] = document.getElementById("tpl-student-behind").value;
-      templates["supervisor-behind"] = document.getElementById("tpl-supervisor-behind").value;
-      templates["incomplete"] = document.getElementById("tpl-incomplete").value;
-      localStorage.setItem("sl_templates", JSON.stringify(templates));
-
-      const btn = document.getElementById("save-btn");
-      btn.disabled = true; btn.textContent = "保存中...";
-      try {
-        await fetch("/api/v1/sync/sp-hook", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: USER_ID,
-            settings: { contacts, channels, templates },
-          }),
-        });
-        dirty = false;
-        btn.textContent = "已保存 ";
-        setTimeout(() => { btn.textContent = "保存设置"; btn.disabled = false; }, 1500);
-        toast("设置已保存");
-      } catch (e) {
-        btn.disabled = false; btn.textContent = "保存设置";
-        toast("网络错误，设置已保存到本地");
-      }
-    }
-
-    function toast(msg) {
-      const t = document.getElementById("toast");
-      t.textContent = msg; t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2000);
-    }
-
-    init();
+    load();
   </script>
 </body>
 </html>

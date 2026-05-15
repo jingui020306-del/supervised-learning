@@ -37,6 +37,7 @@
       <a class="nav-pill" href="/dashboard/calendar">日历</a>
       <a class="nav-pill" href="/dashboard/plans">计划</a>
       <a class="nav-pill" href="/dashboard/apps">App</a>
+      <a class="nav-pill" href="/dashboard/notify">推送</a>
       <a class="nav-pill" href="/dashboard/settings">设置</a>
     </nav>
 
@@ -108,7 +109,7 @@
       var opts = {
         container: document.getElementById("tree-container"),
         depth: depth,
-        growthSpeed: isDead ? 0 : 40,
+        growthSpeed: isDead ? 0 : 300,
         treeScale: isDead ? 0.25 : 0.5,
         seed: <%= it.date ? it.date.replace(/-/g, '') : '20260515' %>,
       };
