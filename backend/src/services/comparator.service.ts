@@ -193,7 +193,7 @@ export async function runAlertCheck() {
       }
     }
 
-    // 3. Post-window completion check
+    // 3. Post-window: 5-min general check (student only)
     const fiveMinAfter = new Date(planEnd.getTime() + 5 * 60 * 1000);
     if (now >= planEnd && now <= fiveMinAfter && actualMin < plannedMin * 0.9) {
       const ok = await checkCooldown(plan.id, 30);
@@ -204,11 +204,29 @@ export async function runAlertCheck() {
         await dispatchAlert({
           level: "incomplete",
           planTitle: plan.title, plannedMin, actualMin: Math.round(actualMin), deficitMin,
-          notifyStudent: plan.alertConfigs[0]?.notifyStudent ?? true,
-          notifySupervisor: plan.alertConfigs[0]?.notifySupervisor ?? true,
+          notifyStudent: true, notifySupervisor: false,
+          supervisorChannel: "wechat",
+        });
+        results.push({ type: "incomplete_student", plan: plan.title });
+      }
+    }
+
+    // 4. 15-min post-deadline: supervisor notification (critical)
+    const fifteenMinAfter = new Date(planEnd.getTime() + 15 * 60 * 1000);
+    if (now >= fifteenMinAfter && now < new Date(planEnd.getTime() + 20 * 60 * 1000) && actualMin < plannedMin * 0.9) {
+      const ok = await checkCooldown(plan.id, 60);
+      if (ok && plan.alertConfigs.length > 0) {
+        const deficitMin = plannedMin - Math.round(actualMin);
+        await createAlert(plan, plan.alertConfigs[0], plannedMin, Math.round(actualMin), deficitMin);
+        const { dispatchAlert } = await import("./notification/dispatcher.js");
+        await dispatchAlert({
+          level: "incomplete",
+          planTitle: plan.title, plannedMin, actualMin: Math.round(actualMin), deficitMin,
+          notifyStudent: false,
+          notifySupervisor: true,
           supervisorChannel: plan.alertConfigs[0]?.supervisorChannel || "wechat",
         });
-        results.push({ type: "incomplete", plan: plan.title });
+        results.push({ type: "supervisor_15min_alert", plan: plan.title });
       }
     }
   }

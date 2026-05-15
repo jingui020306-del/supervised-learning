@@ -46,9 +46,10 @@
       <div id="tree-overlay">🥀</div>
     </div>
 
-    <!-- Tree stats: alive vs dead this week -->
+    <!-- Tree stats: 3 tiers -->
     <div class="tree-stats">
-      <div class="alive"><span class="num" id="alive-count">-</span>成活</div>
+      <div class="alive"><span class="num" id="grown-count">-</span>养大</div>
+      <div class="alive" style="color:var(--amber);"><span class="num" id="alive-count">-</span>成活</div>
       <div class="dead"><span class="num" id="dead-count">-</span>枯萎</div>
     </div>
 
@@ -114,25 +115,35 @@
       }
     })();
 
-    // Load weekly tree stats
+    // Load weekly tree stats (3 tiers)
     (function() {
       var uid = new URLSearchParams(location.search).get("userId") || "stu-1";
       fetch("/api/v1/dashboard/weekly?userId=" + uid)
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          var alive = 0, dead = 0;
+          var grown = 0, alive = 0, dead = 0;
           if (data.days) {
             data.days.forEach(function(d) {
-              if (d.totalSessions > 0 || d.totalMin > 0) { // had plans
-                if (d.totalMin >= 30) alive++; // threshold: 30min = alive
-                else dead++;
-              }
+              // Only count days that had plans
+              var total = d.totalMin + d.matchedMin;
+              if (total < 10) return; // skip days with negligible activity
+              // Use matchedMin / totalMin ratio as approximate completion
+              // Actually use totalSessions as indicator
+              if (d.totalMin >= 60) grown++;      // 60+ min = fully grown
+              else if (d.totalMin >= 20) alive++;  // 20-59 min = alive
+              else dead++;                         // <20 min = dead
             });
           }
+          document.getElementById("grown-count").textContent = grown || "0";
           document.getElementById("alive-count").textContent = alive || "0";
           document.getElementById("dead-count").textContent = dead || "0";
         });
     })();
+
+    // Auto-refresh at midnight
+    var now = new Date();
+    var msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+    setTimeout(function() { location.reload(); }, msToMidnight + 1000);
   </script>
 </body>
 </html>
