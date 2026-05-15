@@ -74,11 +74,16 @@
     </div>
 
     <div class="card">
-      <div style="font-weight:600;margin-bottom:8px;">监督者 Server酱 Key</div>
-      <input class="input" id="serverchan-key" placeholder="SCT123456..." onchange="save()" style="font-size:var(--fs-sm);">
-      <div style="font-size:var(--fs-xs);color:var(--text-3);margin-top:4px;">
-        获取 Key: <a href="https://sct.ftqq.com/" target="_blank">sct.ftqq.com</a>
+      <div style="font-weight:600;margin-bottom:8px;">微信推送接收人</div>
+      <div style="font-size:var(--fs-xs);color:var(--text-2);margin-bottom:12px;line-height:1.6;">
+        <strong>如何绑定监督者微信：</strong><br>
+        1. 监督者打开 <a href="https://sct.ftqq.com/" target="_blank">sct.ftqq.com</a><br>
+        2. 微信扫码登录 → 点击「SendKey」<br>
+        3. 复制 SendKey 粘贴到下方<br>
+        4. 关注 Server酱 公众号即可接收推送<br><br>
+        <em>多个监督者用英文逗号分隔 Key</em>
       </div>
+      <input class="input" id="serverchan-key" placeholder="SCT123456... (多个用,分隔)" onchange="save()" style="font-size:var(--fs-sm);">
     </div>
 
     <div class="card">
