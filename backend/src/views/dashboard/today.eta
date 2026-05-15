@@ -54,7 +54,12 @@
     </div>
 
     <div style="text-align:center;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:var(--s-4);">
-      <%= it.summary.totalActual %> / <%= it.summary.totalPlanned %> 分钟 · <%= it.plans.length %> 项计划
+      <% var doneCount = 0; it.plans.forEach(function(p){ if(p.progress>=90) doneCount++; }); %>
+      <% if (it.plans.length > 0) { %>
+        <%= doneCount %> / <%= it.plans.length %> 项完成 · 浇水 <%= doneCount %> 次<% if (doneCount > it.plans.length) { %> · 超额 <%= doneCount - it.plans.length %> 次<% } %>
+      <% } else { %>
+        今天还没有学习计划
+      <% } %>
     </div>
 
     <% if (it.plans.length === 0) { %>
@@ -88,22 +93,26 @@
   <script src="/static/tree.min.js"></script>
   <script>
     (function() {
-      var pct = <%= it.summary.completionRate %>;
-      // Map: 0%→depth3(seedling), 50%→depth7(half), 100%→depth12(full)
-      var depth = pct === 0 ? 3 : Math.max(3, Math.round(pct / 100 * 9 + 3));
-      // Dead tree: below 50% completion after plans exist
-      var isDead = <%= it.summary.totalPlanned %> > 0 && pct < 50;
+      // Tree grows by COMPLETED TASKS, not minutes
+      // Each plan done (>=90%) = water once -> tree +1 level
+      var doneCount = 0;
+      <% it.plans.forEach(function(p){ if(p.progress>=90) doneCount++; }); %>
+      var depth = Math.min(12, 3 + doneCount);
+      // Overachievement bonus: more actual than planned
+      <% if (it.summary.totalActual > it.summary.totalPlanned && it.summary.totalPlanned > 0) { %>
+        depth = Math.min(12, depth + 1);
+      <% } %>
+      // Dead: no tasks done but plans exist -> tree withered by midnight
+      var isDead = doneCount === 0 && <%= it.plans.length %> > 0;
 
       var opts = {
         container: document.getElementById("tree-container"),
         depth: depth,
-        growthSpeed: 40,
-        treeScale: 0.5,
+        growthSpeed: isDead ? 0 : 40,
+        treeScale: isDead ? 0.25 : 0.5,
         seed: <%= it.date ? it.date.replace(/-/g, '') : '20260515' %>,
       };
       if (isDead) {
-        opts.growthSpeed = 0;
-        opts.treeScale = 0.25;
         opts.gradientStart = "#d4d4d4";
         opts.gradientEnd = "#a3a3a3";
       }
@@ -124,14 +133,11 @@
           var grown = 0, alive = 0, dead = 0;
           if (data.days) {
             data.days.forEach(function(d) {
-              // Only count days that had plans
-              var total = d.totalMin + d.matchedMin;
-              if (total < 10) return; // skip days with negligible activity
-              // Use matchedMin / totalMin ratio as approximate completion
-              // Actually use totalSessions as indicator
-              if (d.totalMin >= 60) grown++;      // 60+ min = fully grown
-              else if (d.totalMin >= 20) alive++;  // 20-59 min = alive
-              else dead++;                         // <20 min = dead
+              if (d.totalSessions < 1) return; // skip days with no activity
+              // 养大: 3+ sessions (tasks completed), 成活: 1-2, 枯萎: 0 but had plans
+              if (d.totalSessions >= 3) grown++;
+              else if (d.totalSessions >= 1) alive++;
+              else dead++;
             });
           }
           document.getElementById("grown-count").textContent = grown || "0";
