@@ -48,7 +48,7 @@
 
 | 你的水平 | 推荐方式 | 说明 |
 |----------|----------|------|
-| 完全不懂代码 | 找会的人帮你生成 EXE，双击运行 | 一次打包，永久使用 |
+| 完全不懂代码 | 找会的人发你 `Trackly-v1.0.zip`，解压双击 `Trackly.app` | 一次打包，永久使用 |
 | 懂一点命令行 | Docker：`docker compose up -d` | 一条命令 |
 | 会写代码 | 源码：`cd backend && npm install && npm run dev` | 可修改 |
 
@@ -61,15 +61,25 @@ cp ../.env.example .env   # 编辑填入配置（可选，不填也能用）
 npm run dev               # → http://localhost:3001
 ```
 
-**方式 B — 独立 EXE（推荐给别人用，无需装任何东西）**
+**方式 B — 独立 EXE / App（推荐给别人用，无需装任何东西）**
 
 ```bash
-bash scripts/release.sh   # 生成 3 个文件
-# supervised-learning-macos   → 发给 Mac 用户
-# supervised-learning-win.exe → 发给 Windows 用户
-# supervised-learning-linux   → 发给 Linux 用户
-# 对方双击运行，浏览器打开 http://localhost:3001/dashboard 即可
+bash scripts/release.sh   # 生成 release/ 目录
 ```
+
+生成的文件在 `release/` 里：
+
+| 文件 | 用途 |
+|------|------|
+| `Trackly.app` | **Mac 双击启动**（自动开浏览器） |
+| `🌳启动.command` | Mac 备选启动方式 |
+| `supervised-learning-macos` | Mac 底层可执行文件（177MB，内置 Node.js） |
+| `supervised-learning-win.exe` | Windows 可执行文件 |
+| `supervised-learning-linux` | Linux 可执行文件 |
+
+> **发给朋友：** 把整个 `release/` 文件夹打包成 ZIP 发过去。对方解压后双击 `Trackly.app`（Mac）或 `supervised-learning-win.exe`（Windows）即可。
+>
+> **Mac 首次打开提示"无法验证"：** 右键 `Trackly.app` → 选「打开」→ 点「打开」即可。之后双击正常启动。
 
 **方式 C — Docker（一条命令）**
 
@@ -77,15 +87,27 @@ bash scripts/release.sh   # 生成 3 个文件
 docker compose up -d      # 后端启动，浏览器打开 http://localhost:3001
 ```
 
-### 打开仪表盘
+### 朋友 / 其他设备怎么访问
 
-启动后在 **同一台电脑的浏览器** 打开：
-- 学生端：`http://localhost:3001/dashboard?userId=student-1`
-- 或用 iPad/手机（连同一 WiFi）：`http://电脑IP:3001/dashboard?userId=student-1`
+Trackly 跑在你的电脑上，**同一 WiFi 下的设备都能访问**。
 
-**添加到桌面像 App 一样用：**
-- iPad/iPhone：Safari 打开 → 点分享 → 添加到主屏幕
-- Android：Chrome 打开 → 添加到主屏幕
+**找到你的电脑 IP：**
+
+```bash
+# Mac 终端运行：
+ifconfig | grep "inet " | grep -v 127.0.0.1
+# 会显示类似 192.168.1.104
+```
+
+**其他人访问：** 浏览器打开 `http://你的IP:3001/dashboard?userId=xxx`
+
+| 设备 | 打开方式 |
+|------|----------|
+| **Mac / Windows** | 浏览器打开 `http://电脑IP:3001/dashboard?userId=student-1` |
+| **iPad / iPhone** | Safari 打开 → 分享 → 添加到主屏幕 → 像 App 一样用 |
+| **Android** | Chrome 打开 → 添加到主屏幕 |
+
+> **不同人用不同 userId**：`?userId=小明`、`?userId=小红`，每人独立数据互不干扰。
 
 ## 角色说明
 
