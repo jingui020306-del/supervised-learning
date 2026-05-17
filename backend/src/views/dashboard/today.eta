@@ -15,13 +15,14 @@
     #tree-canvas { width: 100%; height: 100%; }
     #tree-canvas canvas { display: block; width: 100%; height: 100%; }
     #tree-stats {
-      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 24px; z-index: 2;
+      display: flex; gap: 24px; justify-content: center;
+      padding: var(--s-4) var(--s-4);
     }
     #tree-stats .stat {
-      text-align: center; min-width: 52px;
-      background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
-      padding: 8px 14px; border-radius: 12px;
+      text-align: center; min-width: 72px;
+      background: var(--surface); border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 10px 16px; border-radius: var(--r-lg);
     }
     #tree-stats .num { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
     #tree-stats .lbl { font-size: .7rem; color: var(--text-2); }
@@ -64,11 +65,13 @@
     <div id="tree-hero">
       <div id="tree-status"><%= it.date %></div>
       <div id="tree-canvas"></div>
-      <div id="tree-stats">
-        <div class="stat"><span class="num" id="grown-count" style="color:var(--brand);">-</span><div class="lbl">养大</div></div>
-        <div class="stat"><span class="num" id="alive-count" style="color:var(--amber);">-</span><div class="lbl">成活</div></div>
-        <div class="stat"><span class="num" id="dead-count" style="color:var(--text-3);">-</span><div class="lbl">枯萎</div></div>
-      </div>
+    </div>
+
+    <!-- Weekly stats — below tree, not overlaid -->
+    <div id="tree-stats">
+      <div class="stat"><span class="num" id="grown-count" style="color:var(--brand);">-</span><div class="lbl">养大</div></div>
+      <div class="stat"><span class="num" id="alive-count" style="color:var(--amber);">-</span><div class="lbl">成活</div></div>
+      <div class="stat"><span class="num" id="dead-count" style="color:var(--text-3);">-</span><div class="lbl">枯萎</div></div>
     </div>
 
     <!-- Task list -->
@@ -114,7 +117,7 @@
       });
     })();
     (function() {
-      var uid = new URLSearchParams(location.search).get("userId") || "stu-1";
+      var uid = new URLSearchParams(location.search).get("userId") || "student-1";
       fetch("/api/v1/dashboard/weekly?userId=" + uid)
         .then(function(r) { return r.json(); })
         .then(function(data) {
