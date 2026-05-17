@@ -45,6 +45,17 @@
     .task-info .name { font-weight: 600; font-size: var(--fs-sm); }
     .task-info .meta { font-size: var(--fs-xs); color: var(--text-3); }
     .task-pct { font-weight: 700; font-size: var(--fs-sm); flex-shrink: 0; }
+    .device-card {
+      margin: var(--s-4); padding: var(--s-4);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); box-shadow: var(--shadow);
+      display: flex; gap: var(--s-4); align-items: center;
+    }
+    .device-card .qr { width: 100px; height: 100px; flex-shrink: 0; border-radius: var(--r); }
+    .device-card .info h3 { font-size: var(--fs-sm); font-weight: 600; margin-bottom: 4px; }
+    .device-card .info .url { font-size: var(--fs-xs); color: var(--brand); word-break: break-all; margin-bottom: 6px; }
+    .device-card .info .tip { font-size: .65rem; color: var(--text-3); }
+    .device-card .info .tip span { background: var(--subtle); padding: 2px 8px; border-radius: var(--r-full); margin-right: 4px; }
   </style>
 </head>
 <body>
@@ -74,6 +85,18 @@
       <div class="stat"><span class="num" id="dead-count" style="color:var(--text-3);">-</span><div class="lbl">枯萎</div></div>
     </div>
 
+    <!-- Device connection card -->
+    <% if (it.lanIp && it.lanIp !== 'localhost') { %>
+    <div class="device-card" id="device-card">
+      <img class="qr" id="device-qr" src="" alt="扫码连接" style="background:var(--subtle);">
+      <div class="info">
+        <h3>📱 iPad / iPhone 连接</h3>
+        <div class="url" id="device-url"></div>
+        <div class="tip"><span>1</span>打开相机扫左边的码 <span>2</span>添加到主屏幕</div>
+      </div>
+    </div>
+    <% } %>
+
     <!-- Task list -->
     <div class="task-list">
       <% var doneCount = 0; it.plans.forEach(function(p){ if(p.progress>=75) doneCount++; }); %>
@@ -100,6 +123,18 @@
   </div>
 
   <script src="/static/tree.min.js"></script>
+  <script>
+    // Show device connection info (QR code + URL)
+    (function() {
+      var lanIp = "<%= it.lanIp || '' %>";
+      var port = "<%= it.port || '3001' %>";
+      if (!lanIp || lanIp === "localhost") return;
+      var uid = new URLSearchParams(location.search).get("userId") || "student-1";
+      var url = "http://" + lanIp + ":" + port + "/dashboard?userId=" + uid;
+      document.getElementById("device-qr").src = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=" + encodeURIComponent(url);
+      document.getElementById("device-url").textContent = url;
+    })();
+  </script>
   <script>
     (function() {
       var doneCount = 0;

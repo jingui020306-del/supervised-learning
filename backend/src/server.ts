@@ -9,6 +9,7 @@ import fastifyStatic from "@fastify/static";
 import fastifyView from "@fastify/view";
 import { Eta } from "eta";
 import path from "node:path";
+import os from "node:os";
 import { authPlugin } from "./plugins/auth.js";
 import { registerRoutes } from "./routes/index.js";
 import { config } from "./config.js";
@@ -16,11 +17,27 @@ import { startAlertChecker } from "./jobs/alert-checker.js";
 import { viewRoutes } from "./routes/view.routes.js";
 import { BASE_DIR } from "./setup.js";
 
+function getLanIp(): string {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      if (net.family === "IPv4" && !net.internal) return net.address;
+    }
+  }
+  return "localhost";
+}
+
 export async function buildServer() {
   const app = Fastify({
     logger: true,
-    // Prisma SQLite connection pooling — single connection is optimal for SQLite
-    // (SQLite serializes writes anyway, multiple connections add overhead)
+  });
+
+  const lanIp = getLanIp();
+
+  // Make LAN IP available to all view templates
+  app.decorateReply("locals", null);
+  app.addHook("onRequest", async (_req, reply) => {
+    (reply as any).locals = { lanIp, port: config.port };
   });
 
   // Compression: gzip/brotli responses, reduces bandwidth ~70%

@@ -18,6 +18,6 @@ dotenv.config({ path: path.join(BASE_DIR, ".env") });
 // Ensure data directory exists and set absolute DB path (pkg-compatible)
 const dataDir = path.join(BASE_DIR, "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-process.env.DATABASE_URL = `file:${path.join(dataDir, "trackly.db")}`;
+process.env.DATABASE_URL ||= `file:${path.join(dataDir, "trackly.db")}`;
 
 export { BASE_DIR };

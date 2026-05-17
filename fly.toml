@@ -1,0 +1,26 @@
+app = "trackly"
+primary_region = "hkg"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3001"
+  NODE_ENV = "production"
+  DATABASE_URL = "file:/data/trackly.db"
+
+[[services]]
+  internal_port = 3001
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["http", "tls"]
+
+[mounts]
+  source = "trackly_data"
+  destination = "/data"

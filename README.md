@@ -87,7 +87,33 @@ bash scripts/release.sh   # 生成 release/ 目录
 docker compose up -d      # 后端启动，浏览器打开 http://localhost:3001
 ```
 
-### 发给朋友（朋友在自己电脑上跑）
+### iPad 独立使用 / 朋友不在同一网络
+
+iOS 不允许后台长期运行，Trackly 需要一个"主机"（电脑或云端）跑服务端。
+
+| 场景 | 方案 | 朋友操作 |
+|------|------|----------|
+| **你在电脑上跑** | 启动公网隧道 | 朋友 iPad 打开网址即可 |
+| **朋友自己跑** | 发给朋友 ZIP | 朋友电脑双击 `Trackly.app` |
+
+#### 方案 A — 公网隧道（iPad 独用，推荐）
+
+你的 Mac 运行 Trackly + 隧道，朋友 iPad **在任何地方**都能用：
+
+```bash
+bash scripts/start-public.sh
+```
+
+启动后显示公网地址，发给朋友：
+```
+https://trackly-jin.serveo.net/dashboard?userId=朋友名字
+```
+
+朋友 iPad/iPhone：Safari 打开 → 分享 → 添加到主屏幕 → **像 App 一样用**。
+
+> 你的 Mac 需要保持开机。没有流量和存储成本。隧道通过 Serveo（免费、无需注册）。
+
+#### 方案 B — 发给朋友 ZIP
 
 朋友**不需要装任何东西**。把 `Trackly-v1.0.zip` 发过去：
 
