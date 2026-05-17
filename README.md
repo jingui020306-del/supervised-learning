@@ -87,27 +87,29 @@ bash scripts/release.sh   # 生成 release/ 目录
 docker compose up -d      # 后端启动，浏览器打开 http://localhost:3001
 ```
 
-### 朋友 / 其他设备怎么访问
+### 发给朋友（朋友在自己电脑上跑）
 
-Trackly 跑在你的电脑上，**同一 WiFi 下的设备都能访问**。
+朋友**不需要装任何东西**。把 `Trackly-v1.0.zip` 发过去：
 
-**找到你的电脑 IP：**
-
-```bash
-# Mac 终端运行：
-ifconfig | grep "inet " | grep -v 127.0.0.1
-# 会显示类似 192.168.1.104
-```
-
-**其他人访问：** 浏览器打开 `http://你的IP:3001/dashboard?userId=xxx`
-
-| 设备 | 打开方式 |
+| 步骤 | 朋友操作 |
 |------|----------|
-| **Mac / Windows** | 浏览器打开 `http://电脑IP:3001/dashboard?userId=student-1` |
-| **iPad / iPhone** | Safari 打开 → 分享 → 添加到主屏幕 → 像 App 一样用 |
+| 1 | 收到 `Trackly-v1.0.zip`，解压到任意目录 |
+| 2 | **Mac**：右键 `Trackly.app` → 打开（仅首次），之后双击即可 |
+| 2 | **Windows**：双击 `supervised-learning-win.exe` |
+| 3 | 浏览器自动打开 → 进入仪表盘，开始使用 |
+
+### 其他设备（iPad/iPhone 等）连到朋友的电脑
+
+Trackly 跑在电脑上，**同一 WiFi 下的其他设备** 都能访问：
+
+| 设备 | 怎么用 |
+|------|--------|
+| **iPad / iPhone** | Safari 打开 `http://电脑IP:3001/dashboard?userId=xxx` → 分享 → 添加到主屏幕 |
 | **Android** | Chrome 打开 → 添加到主屏幕 |
 
-> **不同人用不同 userId**：`?userId=小明`、`?userId=小红`，每人独立数据互不干扰。
+> 找到电脑 IP：终端运行 `ifconfig \| grep "inet " \| grep -v 127.0.0.1`，会显示类似 `192.168.1.104`。
+>
+> 不同人用不同 `?userId=小明`、`?userId=小红`，数据互不干扰。
 
 ## 角色说明
 
