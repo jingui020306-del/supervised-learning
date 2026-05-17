@@ -144,62 +144,22 @@ osascript -e 'tell app "Terminal" to close first window' &>/dev/null &
 LAUNCHER
 chmod +x "$RELEASE_DIR/🌳启动.command"
 
-# Create macOS .app bundle wrapper
-APP_DIR="$RELEASE_DIR/Trackly.app"
-mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
-cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleExecutable</key>
-	<string>Trackly</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.trackly.app</string>
-	<key>CFBundleName</key>
-	<string>Trackly</string>
-	<key>CFBundleDisplayName</key>
-	<string>Trackly</string>
-	<key>CFBundleVersion</key>
-	<string>1.0</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>11.0</string>
-	<key>NSHighResolutionCapable</key>
-	<true/>
-</dict>
-</plist>
-PLIST
-cat > "$APP_DIR/Contents/MacOS/Trackly" << 'APPERSCRIPT'
-#!/bin/bash
-DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
-BINARY="$DIR/supervised-learning-macos"
-if [ ! -f "$BINARY" ]; then
-  osascript -e 'display dialog "找不到 Trackly 程序文件。\n请确保 supervised-learning-macos 与 Trackly.app 在同一目录。" with title "Trackly" buttons {"好"} default button "好" with icon stop'
-  exit 1
+# Create macOS .app bundle (AppleScript wrapper — double-click to launch)
+if [ "$(uname -s)" = "Darwin" ]; then
+  SCRPT="/tmp/trackly-launcher-$$.scpt"
+  cat > "$SCRPT" << 'SCPT'
+set appDir to POSIX path of (path to me as string)
+set releaseDir to do shell script "dirname " & quoted form of appDir
+set binPath to releaseDir & "/supervised-learning-macos"
+do shell script "nohup " & quoted form of binPath & " > /dev/null 2>&1 &"
+delay 2
+do shell script "open http://localhost:3001/dashboard"
+SCPT
+  rm -rf "$RELEASE_DIR/Trackly.app"
+  osacompile -o "$RELEASE_DIR/Trackly.app" "$SCRPT" 2>/dev/null
+  rm -f "$SCRPT"
+  xattr -dr com.apple.quarantine "$RELEASE_DIR/Trackly.app" "$RELEASE_DIR/🌳启动.command" "$RELEASE_DIR/$EXE_NAME" 2>/dev/null || true
 fi
-if pgrep -f supervised-learning-macos > /dev/null 2>&1; then
-  open http://localhost:3001/dashboard
-  exit 0
-fi
-nohup "$BINARY" > /dev/null 2>&1 &
-for i in $(seq 1 20); do
-  sleep 0.5
-  if curl -s http://localhost:3001/health > /dev/null 2>&1; then
-    open http://localhost:3001/dashboard
-    exit 0
-  fi
-done
-osascript -e 'display dialog "Trackly 启动超时，请稍后重试。" with title "Trackly" buttons {"好"} default button "好" with icon caution'
-exit 1
-APPERSCRIPT
-chmod +x "$APP_DIR/Contents/MacOS/Trackly"
-xattr -d com.apple.quarantine "$APP_DIR" 2>/dev/null || true
 
 # Summary
 echo ""
